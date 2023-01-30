@@ -1,4 +1,4 @@
-# CS 418 Interactive Computer Graphics
+# CS 418: Interactive Computer Graphics
  
 ## [Warmup 1: Text to PNG](/warmup-1)
 This programming assignment’s goal is to making sure you are ready for the non-real-time MPs that follow. It is dramatically easier than other MPs.
