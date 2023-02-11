@@ -3,7 +3,7 @@
 ## [Warmup 1: Text to PNG](/warmup-1)
 This programming assignment’s goal is to making sure you are ready for the non-real-time MPs that follow. It is dramatically easier than other MPs.
 
-## MP 1: Rasterizer and Compositor
+## [MP 1: Rasterizer and Compositor](/mp-1)
 In this programming assignment you will implement the key parts of the fixed functionality of a 2020s-era GPU.
 
 You may solve this assignments in any language you wish, and will write a program that takes a text file in and produces a PNG file, like you did for the associated warmup exercise.
