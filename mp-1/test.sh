@@ -15,10 +15,11 @@ for file in reference/*.txt; do
     diffs=$(compare -fuzz 2% -metric AE out/${file}.png reference/${file}.png out/${file}-ae.png 2>&1)
     if [ "$diffs" = "0" ]; then
       echo "${GREEN}success\c"
-      echo "$file.txt" >> implemented.txt
     else
       echo "${YELLOW}images do not match: differences: $diffs\c"
     fi
+
+    echo "$file.txt" >> implemented.txt
 
     composite out/${file}.png reference/${file}.png -compose difference out/${file}-rawdiff.png
     convert out/${file}-rawdiff.png -level 0%,8% out/${file}-diff.png
