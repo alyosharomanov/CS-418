@@ -25,9 +25,6 @@ class Point:
         self.b = color[2]
         self.a = color[3]
 
-    def __str__(self):
-        return f"{self.x} aaa"
-
     def coordinates(self):
         return self.x, self.y, self.z, self.w
 
@@ -159,6 +156,7 @@ def generate_pixels_between(points):
 
     return pixels
 
+
 with open(sys.argv[1]) as f:
     file = f.readlines()
     for line in file:
@@ -188,8 +186,6 @@ with open(sys.argv[1]) as f:
             if has_cull and orientation(given_vertices[0], given_vertices[1], given_vertices[2]) != 1:
                 continue
 
-            print(given_vertices)
-
             for pixel in generate_pixels_between(given_vertices): pixel.draw()
 
         elif line[0] == 'depth':  # 15 points
@@ -205,7 +201,7 @@ with open(sys.argv[1]) as f:
         elif line[0] == 'frustum':
             sys.exit("Not yet implemented.")
 
-        elif line[0] == 'fsaa':
+        elif line[0] == 'fsaa':  # 10 points
             has_fsaa = True
             fsaa_level = int(line[1])
             width *= fsaa_level
@@ -254,8 +250,7 @@ with open(sys.argv[1]) as f:
         elif line[0] == 'wuline':
             sys.exit("Not yet implemented.")
 
-        else:
-            sys.exit("Instruction not recognized.")
+        else: sys.exit("Instruction not recognized.")
 
 if has_fsaa:
     output = np.zeros([int(height / fsaa_level), int(width / fsaa_level), 4])
