@@ -12,7 +12,7 @@ This assignment is split into a required part and a menu of optional parts. For 
 
 Reference input and output files are included below; the full set can be downloaded as mp1files.zip. Do not upload these files as part of your submission: the grading server will supply them instead.
 
-## Warmup 2: Warmup: HTML, Javascript, and WebGL
+## [Warmup 2: Warmup: HTML, Javascript, and WebGL](/warmup-2)
 This assignment is really more about making sure you are ready for the WebGL homeworks that follow. It is much more straightforward than other homeworks.
 
 ## MP 2: Dancing Logo
