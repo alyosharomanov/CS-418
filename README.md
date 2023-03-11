@@ -15,7 +15,7 @@ Reference input and output files are included below; the full set can be downloa
 ## [Warmup 2: Warmup: HTML, Javascript, and WebGL](/warmup-2)
 This assignment is really more about making sure you are ready for the WebGL homeworks that follow. It is much more straightforward than other homeworks.
 
-## MP 2: Dancing Logo
+## [MP 2: Dancing Logo](/mp-2)
 You will submit a webpage that has:
 - One canvas
 - An animation of the majestic and inspiring University of Illinois logo
