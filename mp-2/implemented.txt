@@ -1,3 +1,3 @@
 CPU-based vertex movement (15 points)
 Walking (15 points)
-Mouse response (10 Points)
+Mouse response with momentum (20 Points)
