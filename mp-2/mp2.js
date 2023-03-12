@@ -1,4 +1,4 @@
-var selection = 1
+var selection
 var canvas
 var gl
 var frame
@@ -9,26 +9,55 @@ var colors
 var vertexBuffer
 var colorBuffer
 var mvMatrix
-var pMatrix
 
+window.addEventListener('load', initialize)
+
+/**
+ * Initializes HTML elements and sets the proper initial selection.
+ * Runs once at page load.
+ */
 function initialize() {
   canvas = document.getElementById("canvas")
   resizeCanvas()
-  document.querySelectorAll('input[name="selection"]').forEach(elem => {
-    elem.addEventListener('change', radioChanged)
-  })
-  radioChanged()
-  canvas.addEventListener('mousemove', setMousePosition)
-
   gl = canvas.getContext("webgl2")
   gl.viewportWidth = canvas.width
   gl.viewportHeight = canvas.height
   gl.clearColor(0.0, 0.0, 0.0, 0.1)
-  
-  run()
-}
-window.addEventListener('load', initialize)
 
+  document.querySelectorAll('input[name="selection"]').forEach(elem => {
+    elem.addEventListener('change', radioChanged)
+  })
+  canvas.addEventListener('mousemove', setMousePosition)
+  radioChanged()
+}
+
+/**
+ * Resizes the canvas to be a square that fits on the screen with at least 20% vertical padding
+ */
+function resizeCanvas() {
+  canvas.width = canvas.parentElement.clientWidth
+  canvas.height = document.documentElement.clientHeight * 0.8
+  let new_size = Math.min(canvas.width, canvas.height)
+  canvas.width = new_size
+  canvas.height = new_size
+}
+
+/**
+ * Updates selection based on what new animation has been chosen.
+ */
+function radioChanged() {
+  let radioValue = parseInt(document.querySelector('input[name="selection"]:checked').value)
+  if (selection !== radioValue) {
+    selection = radioValue
+    cancelAnimationFrame(frame)
+    run()
+  }
+}
+
+/**
+ * Initializes WebGL shaders and GL context and then runs the appropriate animations.
+ * Runs every time a new radio buttons is selected.
+ */
 async function run() {
   frame = 0
   if (selection === 1 || selection === 2 || selection === 3 || selection === 4) {
@@ -42,14 +71,11 @@ async function run() {
     gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute)
 
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "mvMatrix")
-    shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "pMatrix")
-
     mvMatrix = glMatrix.mat4.create()
-    pMatrix = glMatrix.mat4.create()
 
     setVertices()
     setColors()
-    animate()
+    animateBasic()
 
   } else if (selection === 5) {
     // inspired from https://webglfundamentals.org/webgl/lessons/webgl-shadertoy.html
@@ -57,44 +83,60 @@ async function run() {
     let fs_source = await fetch('shaders/mouse-fragment.glsl').then(res => res.text())
     compileAndLinkGLSL(vs_source, fs_source)
 
+    shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "position")
     vertexBuffer = gl.createBuffer()
+
+    vertices = [-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,]
+    vertexBuffer.itemSize = 2
+    vertexBuffer.numberOfItems = vertices.length / vertexBuffer.itemSize
+
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,]), gl.STATIC_DRAW)
-    animateMouseCanvas()
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW)
+
+    animateMouse()
+  } else if (selection === 6) {
+    // inspired from https://webglfundamentals.org/webgl/lessons/webgl-shadertoy.html
+    let vs_source = await fetch('shaders/psychedelic-vertex.glsl').then(res => res.text())
+    let fs_source = await fetch('shaders/psychedelic-fragment.glsl').then(res => res.text())
+    compileAndLinkGLSL(vs_source, fs_source)
+
+    shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "position")
+    vertexBuffer = gl.createBuffer()
+
+    vertices = [-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,]
+    vertexBuffer.itemSize = 2
+    vertexBuffer.numberOfItems = vertices.length / vertexBuffer.itemSize
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW)
+
+    animatePsychedelic()
   } else {
     console.error("Undefined Selection ID!")
   }
 }
 
-/** Resizes the canvas to be a square that fits on the screen with at least 20% vertical padding */
-function resizeCanvas() {
-  canvas.width = canvas.parentElement.clientWidth
-  canvas.height = document.documentElement.clientHeight * 0.8
-  let new_size = Math.min(canvas.width, canvas.height)
-  canvas.width = new_size
-  canvas.height = new_size
-}
-
-function radioChanged() {
-  let radioValue = parseInt(document.querySelector('input[name="selection"]:checked').value)
-  if (selection !== radioValue) {
-    selection = radioValue
-    cancelAnimationFrame(frame)
-    run()
-  }
-}
-
 var mouseX = 0
 var mouseY = 0
+/**
+ * Updates the mouseX and mouseY coordinates on mouse movement used by animation 5.
+ */
 function setMousePosition(e) {
   const rect = canvas.getBoundingClientRect()
   let trueX = e.clientX - rect.left
   let trueY = rect.height - (e.clientY - rect.top) - 1
   mouseX = trueX + (mouseX - trueX) * 9/10
   mouseY = trueY + (mouseY - trueY) * 9/10
-  if (selection === 5) { animateMouseCanvas() }
+  if (selection === 5) {
+    animateMouse()
+  }
 }
 
+/**
+ * Compiles, Links, and sets the Program from given shaders.
+ * @param vs_source Vertex Shader filename. (.glsl format)
+ * @param fs_source Fragment Shader filename. (.glsl format)
+ */
 function compileAndLinkGLSL(vs_source, fs_source) {
   let vs = gl.createShader(gl.VERTEX_SHADER)
   gl.shaderSource(vs, vs_source)
@@ -124,6 +166,17 @@ function compileAndLinkGLSL(vs_source, fs_source) {
   gl.useProgram(shaderProgram)
 }
 
+/**
+ * Return a float array with an Illini Logo.
+ * Allows modification of the following parameters:
+ * @param x1 Outer X value
+ * @param x2 Inner X value
+ * @param y1 Outer Y value
+ * @param y2 Inner Y value
+ * @param indent Indent into logo, used to make inner orange shape.
+ * @param scale Scale from 0-1 you want the logo to have.
+ * @returns {Float32Array} Array with Illini Logo coordinates in (x, y) format.
+ */
 function getIllini(x1, x2, y1, y2, indent, scale) {
   let illini = []
   let vertices = [
@@ -154,6 +207,9 @@ function getIllini(x1, x2, y1, y2, indent, scale) {
   return illini.map(x => x * scale)
 }
 
+/**
+ * Set vertices for a given selection.
+ */
 function setVertices() {
   vertexBuffer = gl.createBuffer()
   if (selection === 1 || selection === 3) {
@@ -188,6 +244,9 @@ function setVertices() {
   }
 }
 
+/**
+ * Set colors for a given selection.
+ */
 function setColors() {
   colorBuffer = gl.createBuffer()
   if (selection === 1 || selection === 3) {
@@ -218,8 +277,11 @@ function setColors() {
   }
 }
 
-function animate() {
-  frame = requestAnimationFrame(animate)
+/**
+ * Animation for the general shader used for selections 1 to 4.
+ */
+function animateBasic() {
+  frame = requestAnimationFrame(animateBasic)
   if (selection === 1) {
     glMatrix.mat4.rotate(mvMatrix, mvMatrix, 1/(180) * Math.PI, [0, 0, 1])
     let scale = .01
@@ -228,7 +290,7 @@ function animate() {
   } else if (selection === 2) {
     glMatrix.mat4.rotate(mvMatrix, mvMatrix, - 1/(360) * Math.PI, [0, 0, 1])
   } else if (selection === 3) {
-    let offset = .001
+    let offset = .002
     if (((frame) % 100) >= 50) {offset *= -1}
     for (let i = 0; i < vertices.length; i += 2) {
       if ((i/2) % 2 === 0) {
@@ -288,7 +350,6 @@ function animate() {
 
   //calculate transform and draw to canvas
   gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix)
-  gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix)
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
   gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0)
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
@@ -296,13 +357,29 @@ function animate() {
   gl.drawArrays(gl.TRIANGLES, 0, vertexBuffer.numberOfItems)
 }
 
-function animateMouseCanvas() {
+/**
+ * Animation for selection 5.
+ */
+function animateMouse() {
   if (selection !== 5) {return}
-  frame += 1
-  gl.enableVertexAttribArray(gl.getAttribLocation(shaderProgram, "a_position"))
+  gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute)
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-  gl.vertexAttribPointer(gl.getAttribLocation(shaderProgram, "a_position"), 2, gl.FLOAT, false, 0, 0)
-  gl.uniform2f(gl.getUniformLocation(shaderProgram, "u_resolution"), canvas.width, canvas.height)
-  gl.uniform2f(gl.getUniformLocation(shaderProgram, "u_mouse"), mouseX, mouseY)
-  gl.drawArrays(gl.TRIANGLES, 0, 6)
+  gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0)
+  gl.uniform2f(gl.getUniformLocation(shaderProgram, "resolution"), canvas.width, canvas.height)
+  gl.uniform2f(gl.getUniformLocation(shaderProgram, "mouse"), mouseX, mouseY)
+  gl.drawArrays(gl.TRIANGLES, 0, vertexBuffer.numberOfItems)
+}
+
+/**
+ * Animation for selection 6.
+ */
+function animatePsychedelic(time) {
+  if (selection !== 6) {return}
+  gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute)
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+  gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0)
+  gl.uniform2f(gl.getUniformLocation(shaderProgram, "resolution"), gl.canvas.width, gl.canvas.height)
+  gl.uniform1f(gl.getUniformLocation(shaderProgram, "time"), time * 0.0025)
+  gl.drawArrays(gl.TRIANGLES, 0, vertexBuffer.numberOfItems)
+  requestAnimationFrame(animatePsychedelic)
 }
