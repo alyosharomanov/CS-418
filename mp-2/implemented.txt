@@ -1,3 +1,4 @@
 CPU-based vertex movement (15 points)
 Walking (15 points)
 Mouse response with momentum (20 Points)
+Psychedelic (15 points)
