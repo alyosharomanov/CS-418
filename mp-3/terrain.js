@@ -69,6 +69,7 @@ function calculateNormals(terrain, width, height) {
 }
 
 function createTerrainMesh(gl, terrain, normals, width, height) {
+    const colors = generateColorBuffer(terrain, height);
     const vertices = [];
     const indices = [];
 
@@ -77,7 +78,8 @@ function createTerrainMesh(gl, terrain, normals, width, height) {
             const index = y * width + x;
             vertices.push(
                 x, terrain[index], y,
-                normals[index * 3], normals[index * 3 + 1], normals[index * 3 + 2]
+                normals[index * 3], normals[index * 3 + 1], normals[index * 3 + 2],
+                colors[index * 3], colors[index * 3 + 1], colors[index * 3 + 2] // Add colors
             );
         }
     }
@@ -100,11 +102,41 @@ function createTerrainMesh(gl, terrain, normals, width, height) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
+    const colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+
     return {
         vertexBuffer,
         indexBuffer,
+        colorBuffer,
         numVertices: indices.length
     };
+}
+
+function generateColorBuffer(terrain, resolution) {
+    const colors = new Float32Array(resolution * resolution * 3);
+
+    for (let y = 0; y < resolution; y++) {
+        for (let x = 0; x < resolution; x++) {
+            const index = y * resolution + x;
+            const colorIndex = index * 3;
+
+            // Normalize the height value between 0 and 1
+            const heightNormalized = (terrain[index] + resolution / 4) / (resolution / 2);
+
+            // Generate colors based on the height value
+            const r = heightNormalized * 0.5 + 0.5;
+            const g = heightNormalized * 0.7 + 0.3;
+            const b = heightNormalized * 0.9;
+
+            colors[colorIndex] = r;
+            colors[colorIndex + 1] = g;
+            colors[colorIndex + 2] = b;
+        }
+    }
+
+    return colors;
 }
 
 function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
@@ -135,10 +167,28 @@ function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
     glMatrix.mat4.invert(normalMatrix, modelViewProjectionMatrix);
     glMatrix.mat4.transpose(normalMatrix, normalMatrix);
 
-    const positionLocation = gl.getAttribLocation(shaderProgram, 'a_position');
-    const normalLocation = gl.getAttribLocation(shaderProgram, 'a_normal');
-    const modelViewProjectionLocation = gl.getUniformLocation(shaderProgram, 'u_modelViewProjection');
-    const normalMatrixLocation = gl.getUniformLocation(shaderProgram, 'u_normalMatrix');
+    const positionLocation = gl.getAttribLocation(shaderProgram, 'a_Vertex');
+    gl.bindBuffer(gl.ARRAY_BUFFER, terrainMesh.vertexBuffer);
+    gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 36, 0);
+    gl.enableVertexAttribArray(positionLocation);
+
+    const normalLocation = gl.getAttribLocation(shaderProgram, 'a_Vertex_normal');
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terrainMesh.indexBuffer);
+    gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 36, 12);
+    gl.enableVertexAttribArray(normalLocation);
+
+    const colorLocation = gl.getAttribLocation(shaderProgram, 'a_Color');
+    gl.bindBuffer(gl.ARRAY_BUFFER, terrainMesh.vertexBuffer);
+    gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 36, 24);
+    gl.enableVertexAttribArray(colorLocation);
+
+    const modelViewProjectionLocation = gl.getUniformLocation(shaderProgram, 'u_PVM_transform');
+    const normalMatrixLocation = gl.getUniformLocation(shaderProgram, 'u_VM_transform');
+
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_position'), [1, 100, 1]);
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_color'), [.1, .1, .1]);
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_Shininess'), 128);
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Ambient_color'), [0.2, 0.2, 0.2]);
 
     let rotation = 0;
 
@@ -178,14 +228,6 @@ function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
         glMatrix.mat4.invert(normalMatrix, modelViewProjectionMatrix);
         glMatrix.mat4.transpose(normalMatrix, normalMatrix);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, terrainMesh.vertexBuffer);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terrainMesh.indexBuffer);
-
-        gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0);
-        gl.enableVertexAttribArray(positionLocation);
-
-        gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 24, 12);
-        gl.enableVertexAttribArray(normalLocation);
 
         gl.uniformMatrix4fv(modelViewProjectionLocation, false, modelViewProjectionMatrix);
         gl.uniformMatrix4fv(normalMatrixLocation, false, normalMatrix);

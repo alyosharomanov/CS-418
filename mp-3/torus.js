@@ -69,9 +69,6 @@ function drawTorus(shaderProgram, r1, r2, res1, res2) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, torus.indices, gl.STATIC_DRAW);
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.enable(gl.DEPTH_TEST);
-
     const aPosition = gl.getAttribLocation(shaderProgram, 'aPosition');
     gl.enableVertexAttribArray(aPosition);
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
