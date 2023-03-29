@@ -44,18 +44,30 @@ function generateTerrain(resolution, slices, jaggedness) {
 function calculateColor(terrain, resolution) {
     const colors = new Float32Array(resolution * resolution * 3);
 
+    let z_min = terrain[0]
+    let z_max = terrain[0]
+    for(let i= 1; i<terrain.length; i++){
+        if(parseInt(terrain[i],10) < z_min){
+            z_min = terrain[i];
+        }
+        if(parseInt(terrain[i],10) > z_max){
+            z_max = terrain[i];
+        }
+    }
+    let z_delta = z_max - z_min
+
     for (let y = 0; y < resolution; y++) {
         for (let x = 0; x < resolution; x++) {
             const index = y * resolution + x;
             const colorIndex = index * 3;
 
             // Normalize the height value between 0 and 1
-            const heightNormalized = (terrain[index] + resolution / 4) / (resolution / 2);
+            const heightNormalized = (terrain[index] - z_min) / z_delta
 
             // Generate colors based on the height value
-            const r = heightNormalized * 0.5 + 0.5;
-            const g = heightNormalized * 0.7 + 0.3;
-            const b = heightNormalized * 0.9;
+            const r = heightNormalized;
+            const g = heightNormalized;
+            const b = heightNormalized;
 
             colors[colorIndex] = r;
             colors[colorIndex + 1] = g;
@@ -184,9 +196,9 @@ function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
     const normalMatrixLocation = gl.getUniformLocation(shaderProgram, 'u_VM_transform');
 
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_position'), [0.0, 100.0, 0.0]);
-    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_color'), [0, 0, 0]);
-    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_Shininess'), 0);
-    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Ambient_color'), [0.2, 0.5, 0.78]);
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_color'), [1, 1, 1]);
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_Shininess'), 10);
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Ambient_color'), [1, 1, 1]);
 
     let rotation = 0;
     frame = requestAnimationFrame(render);
@@ -206,6 +218,7 @@ function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
         const cameraX = cameraRadius * Math.sin(rotation);
         const cameraZ = cameraRadius * Math.cos(rotation);
         const cameraPosition = [cameraX, cameraHeight, cameraZ];
+        gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Camera'), cameraPosition);
 
         glMatrix.mat4.lookAt(normalMatrixLocation, cameraPosition, [resolution / 2, 0, resolution / 2], [0, 1, 0]);
         glMatrix.mat4.perspective(modelViewProjectionLocation, 45 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 1, 2000);
