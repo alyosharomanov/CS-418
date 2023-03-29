@@ -7,6 +7,7 @@ uniform vec3 u_Light_position;
 uniform vec3 u_Light_color;
 uniform float u_Shininess;
 uniform vec3 u_Ambient_color;
+uniform vec2 u_HeightRange; // vec2(minHeight, maxHeight)
 
 uniform vec3 u_Camera;
 
@@ -68,7 +69,21 @@ void main() {
     specular_color = vec3(0.0, 0.0, 0.0);
   }
 
-  color = ambient_color + diffuse_color + specular_color;
+  float height_percentage = (v_Vertex.y - u_HeightRange.x) / (u_HeightRange.y - u_HeightRange.x);
+  vec3 color_height;
+
+  if (height_percentage < 0.333) {
+    // Blend between blue and green
+    color_height = mix(vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0), height_percentage * 3.0);
+  } else if (height_percentage < 0.666) {
+    // Blend between green and yellow
+    color_height = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), (height_percentage - 0.333) * 3.0);
+  } else {
+    // Blend between yellow and red
+    color_height = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (height_percentage - 0.666) * 3.0);
+  }
+
+  color = (ambient_color + diffuse_color + specular_color) * color_height;
 
   gl_FragColor = vec4(color, v_Color.a);
 }

@@ -199,6 +199,19 @@ function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_color'), [1, 1, 1]);
     gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_Shininess'), 10);
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Ambient_color'), [1, 1, 1]);
+    let z_min = terrain[0]
+    let z_max = terrain[0]
+    for(let i= 1; i<terrain.length; i++){
+        if(parseInt(terrain[i],10) < z_min){
+            z_min = terrain[i];
+        }
+        if(parseInt(terrain[i],10) > z_max){
+            z_max = terrain[i];
+        }
+    }
+    console.log(z_min,z_max)
+    gl.uniform2fv(gl.getUniformLocation(shaderProgram, 'u_HeightRange'), [z_min,z_max]);
+
 
     let rotation = 0;
     frame = requestAnimationFrame(render);
