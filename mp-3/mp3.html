@@ -5,6 +5,10 @@
     <title>CS 418 Terrain project</title>
     <script src="utils/scene-option-tree.js"></script><!-- handles controls -->
     <script src="utils/matrices.js"></script>
+    <script src="utils/gl-matrix-min.js"></script>
+
+    <script src="terrain.js"></script>
+    <script src="torus.js"></script>
     <script src="mp3.js"></script>
 
 
@@ -20,7 +24,7 @@ var controlOptions =
     ,"options":
       {"resolution":{"type":"number","default":100,"label":"Grid size"}
       ,"slices":{"type":"number","default":100,"label":"Fractures"}
-      ,"smooth":{"type":"checkbox","default":true,"label":"Smooth shading"}
+      ,"jaggedness":{"type":"number","default":1,"label":"Jaggedness"}
       ,"erode":
         {"type":"radio"
         ,"options":
