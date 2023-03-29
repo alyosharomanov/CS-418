@@ -41,6 +41,31 @@ function generateTerrain(resolution, slices, jaggedness) {
     return terrain;
 }
 
+function calculateColor(terrain, resolution) {
+    const colors = new Float32Array(resolution * resolution * 3);
+
+    for (let y = 0; y < resolution; y++) {
+        for (let x = 0; x < resolution; x++) {
+            const index = y * resolution + x;
+            const colorIndex = index * 3;
+
+            // Normalize the height value between 0 and 1
+            const heightNormalized = (terrain[index] + resolution / 4) / (resolution / 2);
+
+            // Generate colors based on the height value
+            const r = heightNormalized * 0.5 + 0.5;
+            const g = heightNormalized * 0.7 + 0.3;
+            const b = heightNormalized * 0.9;
+
+            colors[colorIndex] = r;
+            colors[colorIndex + 1] = g;
+            colors[colorIndex + 2] = b;
+        }
+    }
+
+    return colors;
+}
+
 function calculateNormals(terrain, width, height) {
     const normals = new Float32Array(width * height * 3);
 
@@ -68,14 +93,36 @@ function calculateNormals(terrain, width, height) {
     return normals;
 }
 
-function createTerrainMesh(gl, terrain, normals, width, height) {
-    const colors = generateColorBuffer(terrain, height);
+function createTerrainMesh(gl, terrain, resolution) {
+    const colors = calculateColor(terrain, resolution);
+    const normals = calculateNormals(terrain, resolution);
     const vertices = [];
     const indices = [];
 
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const index = y * width + x;
+    for (let y = 0; y < resolution; y++) {
+    for (let x = 0; x < resolution; x++) {
+        const index = y * resolution + x;
+        const normalIndex = index * 3;
+
+        const heightLeft = x > 0 ? terrain[index - 1] : terrain[index];
+        const heightRight = x < resolution - 1 ? terrain[index + 1] : terrain[index];
+        const heightUp = y > 0 ? terrain[index - resolution] : terrain[index];
+        const heightDown = y < resolution - 1 ? terrain[index + resolution] : terrain[index];
+
+        const normalX = heightLeft - heightRight;
+        const normalY = 2.0;
+        const normalZ = heightUp - heightDown;
+
+        const length = Math.sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+        normals[normalIndex] = normalX / length;
+        normals[normalIndex + 1] = normalY / length;
+        normals[normalIndex + 2] = normalZ / length;
+    }
+}
+
+    for (let y = 0; y < resolution; y++) {
+        for (let x = 0; x < resolution; x++) {
+            const index = y * resolution + x;
             vertices.push(
                 x, terrain[index], y,
                 normals[index * 3], normals[index * 3 + 1], normals[index * 3 + 2],
@@ -84,12 +131,12 @@ function createTerrainMesh(gl, terrain, normals, width, height) {
         }
     }
 
-    for (let y = 0; y < height - 1; y++) {
-        for (let x = 0; x < width - 1; x++) {
-            const i = y * width + x;
+    for (let y = 0; y < resolution - 1; y++) {
+        for (let x = 0; x < resolution - 1; x++) {
+            const i = y * resolution + x;
             indices.push(
-                i, i + width, i + 1,
-                i + width, i + width + 1, i + 1
+                i, i + resolution, i + 1,
+                i + resolution, i + resolution + 1, i + 1
             );
         }
     }
@@ -114,58 +161,9 @@ function createTerrainMesh(gl, terrain, normals, width, height) {
     };
 }
 
-function generateColorBuffer(terrain, resolution) {
-    const colors = new Float32Array(resolution * resolution * 3);
-
-    for (let y = 0; y < resolution; y++) {
-        for (let x = 0; x < resolution; x++) {
-            const index = y * resolution + x;
-            const colorIndex = index * 3;
-
-            // Normalize the height value between 0 and 1
-            const heightNormalized = (terrain[index] + resolution / 4) / (resolution / 2);
-
-            // Generate colors based on the height value
-            const r = heightNormalized * 0.5 + 0.5;
-            const g = heightNormalized * 0.7 + 0.3;
-            const b = heightNormalized * 0.9;
-
-            colors[colorIndex] = r;
-            colors[colorIndex + 1] = g;
-            colors[colorIndex + 2] = b;
-        }
-    }
-
-    return colors;
-}
-
 function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
     const terrain = generateTerrain(resolution, slices, jaggedness);
-    const normals = calculateNormals(terrain, resolution, resolution);
-    const terrainMesh = createTerrainMesh(gl, terrain, normals, resolution, resolution);
-
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.clearColor(0, 0, 0, 1);
-    gl.enable(gl.DEPTH_TEST);
-
-    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-
-    const projectionMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.perspective(projectionMatrix, Math.PI / 4, aspect, 0.1, 1000);
-
-    const viewMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.lookAt(viewMatrix, [0, resolution * 1.5, resolution * 1.5], [resolution / 2, 0, resolution / 2], [0, 1, 0]);
-
-    const modelMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.identity(modelMatrix);
-
-    const modelViewProjectionMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.multiply(modelViewProjectionMatrix, projectionMatrix, viewMatrix);
-    glMatrix.mat4.multiply(modelViewProjectionMatrix, modelViewProjectionMatrix, modelMatrix);
-
-    const normalMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.invert(normalMatrix, modelViewProjectionMatrix);
-    glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+    const terrainMesh = createTerrainMesh(gl, terrain, resolution);
 
     const positionLocation = gl.getAttribLocation(shaderProgram, 'a_Vertex');
     gl.bindBuffer(gl.ARRAY_BUFFER, terrainMesh.vertexBuffer);
@@ -185,14 +183,15 @@ function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
     const modelViewProjectionLocation = gl.getUniformLocation(shaderProgram, 'u_PVM_transform');
     const normalMatrixLocation = gl.getUniformLocation(shaderProgram, 'u_VM_transform');
 
-    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_position'), [1, 100, 1]);
-    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_color'), [.1, .1, .1]);
-    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_Shininess'), 128);
-    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Ambient_color'), [0.2, 0.2, 0.2]);
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_position'), [0.0, 100.0, 0.0]);
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_color'), [0, 0, 0]);
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_Shininess'), 0);
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Ambient_color'), [0.2, 0.5, 0.78]);
 
     let rotation = 0;
-
     frame = requestAnimationFrame(render);
+
+    const modelViewProjectionMatrix = glMatrix.mat4.create();
 
     function render() {
         if (current_scene !== "terrain") {
@@ -201,36 +200,18 @@ function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
         }
         draw()
 
-        // Update rotation and model matrix
-        //rotation += 0.01;
-        //glMatrix.mat4.identity(modelMatrix);
-        //glMatrix.mat4.rotateY(modelMatrix, modelMatrix, rotation);
-
         rotation += 0.0025;
+        const cameraRadius = 150;
+        const cameraHeight = 100;
+        const cameraX = cameraRadius * Math.sin(rotation);
+        const cameraZ = cameraRadius * Math.cos(rotation);
+        const cameraPosition = [cameraX, cameraHeight, cameraZ];
 
-        //const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+        glMatrix.mat4.lookAt(normalMatrixLocation, cameraPosition, [resolution / 2, 0, resolution / 2], [0, 1, 0]);
+        glMatrix.mat4.perspective(modelViewProjectionLocation, 45 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 1, 2000);
 
-        // Compute the new camera position based on rotation
-        const cameraRadius = resolution * 1.5;
-        const cameraPosition = [
-            Math.sin(rotation) * cameraRadius,
-            resolution * 0.5,
-            Math.cos(rotation) * cameraRadius
-        ]
-
-        // Update the view matrix with the new camera position
-        glMatrix.mat4.lookAt(viewMatrix, cameraPosition, [resolution / 2, 0, resolution / 2], [0, 1, 0]);
-
-
-        // Compute the model-view-projection and normal matrices
-        glMatrix.mat4.multiply(modelViewProjectionMatrix, projectionMatrix, viewMatrix);
-        glMatrix.mat4.multiply(modelViewProjectionMatrix, modelViewProjectionMatrix, modelMatrix);
-        glMatrix.mat4.invert(normalMatrix, modelViewProjectionMatrix);
-        glMatrix.mat4.transpose(normalMatrix, normalMatrix);
-
-
+        glMatrix.mat4.multiply(modelViewProjectionMatrix, modelViewProjectionLocation, normalMatrixLocation);
         gl.uniformMatrix4fv(modelViewProjectionLocation, false, modelViewProjectionMatrix);
-        gl.uniformMatrix4fv(normalMatrixLocation, false, normalMatrix);
 
         gl.drawElements(gl.TRIANGLES, terrainMesh.numVertices, gl.UNSIGNED_SHORT, 0);
 

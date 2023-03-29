@@ -39,8 +39,6 @@ async function setup(event) {
         {antialias: false, depth:true, preserveDrawingBuffer:true}
     )
 
-    ctx = WebGLDebugUtils.makeDebugContext(window.gl);
-
     let vs_source_terrain = await fetch('shaders/terrain-vertex.glsl').then(res => res.text())
     let fs_source_terrain = await fetch('shaders/terrain-fragment.glsl').then(res => res.text())
     shaderPrograms["terrain"] = compileAndLinkGLSL(vs_source_terrain, fs_source_terrain)
