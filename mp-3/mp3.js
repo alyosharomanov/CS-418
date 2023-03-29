@@ -1,10 +1,12 @@
-const IlliniBlue = new Float32Array([0.075, 0.16, 0.292, 1])
+let shaderPrograms = [];
+let current_scene = "null"
+let frame = 0
 
 /**
  * Draw one frame
  */
 function draw() {
-    gl.clearColor(...IlliniBlue) // f(...[1,2,3]) means f(1,2,3)
+    gl.clearColor(0.075, 0.16, 0.292, 1)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 }
 
@@ -35,7 +37,15 @@ async function setup(event) {
         // optional configuration object: see https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext
         {antialias: false, depth:true, preserveDrawingBuffer:true}
     )
-    // to do: more setup here
+
+    let vs_source_terrain = await fetch('shaders/terrain-vertex.glsl').then(res => res.text())
+    let fs_source_terrain = await fetch('shaders/terrain-fragment.glsl').then(res => res.text())
+    shaderPrograms["terrain"] = compileAndLinkGLSL(vs_source_terrain, fs_source_terrain)
+
+    let vs_source_torus = await fetch('shaders/torus-vertex.glsl').then(res => res.text())
+    let fs_source_torus = await fetch('shaders/torus-fragment.glsl').then(res => res.text())
+    shaderPrograms["torus"] = compileAndLinkGLSL(vs_source_torus, fs_source_torus)
+
     fillScreen()
 }
 
@@ -44,7 +54,55 @@ async function setup(event) {
  */
 async function setupScene(scene, options) {
     console.log("To do: render",scene,"with options",options)
+
+    if (current_scene !== scene) {
+        console.log("Changing shader.")
+        cancelAnimationFrame(frame)
+        gl.useProgram(shaderPrograms[scene])
+        current_scene = scene
+    }
+
+    if (scene === "terrain") {
+        drawTerrain(shaderPrograms[scene], options["resolution"], options["slices"], options["jaggedness"])
+    } else if (scene === "torus") {
+        drawTorus(shaderPrograms[scene], options["r1"], options["r2"], options["res1"], options["res2"])
+    }
 }
 
 window.addEventListener('load', setup)
 window.addEventListener('resize', fillScreen)
+
+/**
+ *
+ * @param vs_source
+ * @param fs_source
+ * @returns {WebGLProgram}
+ */
+function compileAndLinkGLSL(vs_source, fs_source) {
+  let vs = gl.createShader(gl.VERTEX_SHADER)
+  gl.shaderSource(vs, vs_source)
+  gl.compileShader(vs)
+  if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(vs))
+    throw Error("Vertex shader compilation failed")
+  }
+
+  let fs = gl.createShader(gl.FRAGMENT_SHADER)
+  gl.shaderSource(fs, fs_source)
+  gl.compileShader(fs)
+  if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(fs))
+    throw Error("Fragment shader compilation failed")
+  }
+
+  let shaderProgram = gl.createProgram()
+  gl.attachShader(shaderProgram, vs)
+  gl.attachShader(shaderProgram, fs)
+  gl.linkProgram(shaderProgram)
+  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(shaderProgram))
+    throw Error("Linking failed")
+  }
+
+  return shaderProgram
+}
