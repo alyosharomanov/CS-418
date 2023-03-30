@@ -83,10 +83,9 @@ function drawTorus(shaderProgram, r1, r2, res1, res2) {
 
     let uModelViewMatrix = gl.getUniformLocation(shaderProgram, 'uModelViewMatrix');
     let uProjectionMatrix = gl.getUniformLocation(shaderProgram, 'uProjectionMatrix');
+
     let angle = 0
-
     frame = requestAnimationFrame(render);
-
     function render() {
         if (current_scene !== "torus") {
             console.log("Dropped frames in torus.")
@@ -94,9 +93,8 @@ function drawTorus(shaderProgram, r1, r2, res1, res2) {
         }
         clearGL()
 
-        const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
         const projectionMatrix = glMatrix.mat4.create();
-        glMatrix.mat4.perspective(projectionMatrix, Math.PI / 3, aspect, 0.1, 100);
+        glMatrix.mat4.perspective(projectionMatrix, Math.PI / 3, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 100);
 
         const modelViewMatrix = glMatrix.mat4.create();
         glMatrix.mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -5]);
