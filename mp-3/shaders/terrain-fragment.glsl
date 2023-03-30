@@ -1,89 +1,48 @@
-// Fragment shader program
-precision mediump int;
+#version 300 es
+// Fragment Shader
+// Implements Gourand shading. See the lecture on "Basic Shading" for details.
+
+// Use high-precision floats if available on this device.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 
-// Light model
-uniform vec3 u_Light_position;
-uniform vec3 u_Light_color;
-uniform float u_Shininess;
-uniform vec3 u_Ambient_color;
-uniform vec2 u_HeightRange; // vec2(minHeight, maxHeight)
+// Receive an interpolated normal vector from the vertex shader
+// Receive an interpolated position value from vertex shader
+in vec3 vertexNormalView;
+in vec3 vertexPositionView;
 
-uniform vec3 u_Camera;
+in vec3 kAmbient;
+in vec3 kDiffuse;
+uniform vec3 kSpecular;
+uniform float shininess;
 
-// Data coming from the vertex shader
-varying vec3 v_Vertex;
-varying vec4 v_Color;
-varying vec3 v_Normal;
+uniform vec3 lightPosition;
+uniform vec3 ambientLightColor;
+uniform vec3 diffuseLightColor;
+uniform vec3 specularLightColor;
 
-void main() {
+out vec4 fragmentColor;
 
-  vec3 to_light;
-  vec3 vertex_normal;
-  vec3 reflection;
-  vec3 to_camera;
-  float cos_angle;
-  vec3 diffuse_color;
-  vec3 specular_color;
-  vec3 ambient_color;
-  vec3 color;
+void main(void) {
+    // The camera is at the origin in view coordinates
+    vec3 cameraPositionView = vec3(0.0, 0.0, 0.0);
 
-  // Calculate the ambient color as a percentage of the surface color
-  ambient_color = u_Ambient_color * vec3(v_Color);
+    // Calculate the three other vectors we need: l, r, and v
+    vec3 lightVector = normalize(lightPosition - vertexPositionView);
+    vec3 reflectionVector = normalize(reflect(-lightVector, vertexNormalView));
+    vec3 viewVector = normalize(cameraPositionView - vertexPositionView);
 
-  // Calculate a vector from the fragment location to the light source
-  to_light = u_Light_position - v_Vertex;
-  to_light = normalize( to_light );
+    // Calculate diffuse light weighting: (n dot l)
+    float diffuseWeight = max(dot(vertexNormalView, lightVector), 0.0);
 
-  // The vertex's normal vector is being interpolated across the primitive
-  // which can make it un-normalized. So normalize the vertex's normal vector.
-  vertex_normal = normalize( v_Normal );
+    // Calculate the specular light weighting: (r dot v)^(shininess)
+    float rDotV = max(dot(reflectionVector, viewVector), 0.0);
+    float specularWeight = pow(rDotV, shininess);
 
-  // Calculate the cosine of the angle between the vertex's normal vector
-  // and the vector going to the light.
-  cos_angle = dot(vertex_normal, to_light);
-  cos_angle = clamp(cos_angle, 0.0, 1.0);
-
-  // Scale the color of this fragment based on its angle to the light.
-  diffuse_color = vec3(v_Color) * cos_angle;
-
-  // Calculate the reflection vector
-  reflection = 2.0 * dot(vertex_normal,to_light) * vertex_normal - to_light;
-
-  // Calculate a vector from the fragment location to the camera.
-  to_camera = u_Camera - v_Vertex;
-
-  // Calculate the cosine of the angle between the reflection vector
-  // and the vector going to the camera.
-  reflection = normalize( reflection );
-  to_camera = normalize( to_camera );
-  cos_angle = dot(reflection, to_camera);
-  cos_angle = clamp(cos_angle, 0.0, 1.0);
-  cos_angle = pow(cos_angle, u_Shininess);
-
-  // The specular color is from the light source, not the object
-  if (cos_angle > 0.0) {
-    specular_color = u_Light_color * cos_angle;
-    diffuse_color = diffuse_color * (1.0 - cos_angle);
-  } else {
-    specular_color = vec3(0.0, 0.0, 0.0);
-  }
-
-  float height_percentage = (v_Vertex.y - u_HeightRange.x) / (u_HeightRange.y - u_HeightRange.x);
-  vec3 color_height;
-
-  if (height_percentage < 0.333) {
-    // Blend between blue and green
-    color_height = mix(vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0), height_percentage * 3.0);
-  } else if (height_percentage < 0.666) {
-    // Blend between green and yellow
-    color_height = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), (height_percentage - 0.333) * 3.0);
-  } else {
-    // Blend between yellow and red
-    color_height = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (height_percentage - 0.666) * 3.0);
-  }
-
-  color = (ambient_color + diffuse_color + specular_color) * color_height;
-
-  gl_FragColor = vec4(color, v_Color.a);
+    // Sum up all three lighting components into the color for the vertex,
+    // and send it to the fragment shader.
+    fragmentColor = vec4((kAmbient * ambientLightColor + kDiffuse * diffuseLightColor * diffuseWeight + kSpecular * specularLightColor * specularWeight), 1.0);
 }

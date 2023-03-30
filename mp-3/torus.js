@@ -92,7 +92,7 @@ function drawTorus(shaderProgram, r1, r2, res1, res2) {
             console.log("Dropped frames in torus.")
             return
         }
-        draw()
+        clearGL()
 
         const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
         const projectionMatrix = glMatrix.mat4.create();

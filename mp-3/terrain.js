@@ -1,4 +1,4 @@
-function generateTerrain(resolution, slices, jaggedness) {
+/**function generateTerrain(resolution, slices, jaggedness) {
     const terrain = new Float32Array(resolution * resolution);
 
     //generate naive terrain
@@ -172,75 +172,330 @@ function createTerrainMesh(gl, terrain, resolution) {
         numVertices: indices.length
     };
 }
+**/
 
-function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
-    const terrain = generateTerrain(resolution, slices, jaggedness);
-    const terrainMesh = createTerrainMesh(gl, terrain, resolution);
+/** @global The Model matrix */
+var modelViewMatrix = glMatrix.mat4.create();
+/** @global The Projection matrix */
+var projectionMatrix = glMatrix.mat4.create();
+/** @global The Normal matrix */
+var normalMatrix = glMatrix.mat3.create();
 
-    const positionLocation = gl.getAttribLocation(shaderProgram, 'a_Vertex');
-    gl.bindBuffer(gl.ARRAY_BUFFER, terrainMesh.vertexBuffer);
-    gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 36, 0);
-    gl.enableVertexAttribArray(positionLocation);
+// Material parameters
+/** @global Ambient material color/intensity for Phong reflection */
+var kAmbient = [227 / 255, 191 / 255, 76 / 255];
+/** @global Diffuse material color/intensity for Phong reflection */
+var kDiffuse = [227 / 255, 191 / 255, 76 / 255];
+/** @global Specular material color/intensity for Phong reflection */
+var kSpecular = [227 / 255, 191 / 255, 76 / 255];
+/** @global Shininess exponent for Phong reflection */
+var shininess = 2;
 
-    const normalLocation = gl.getAttribLocation(shaderProgram, 'a_Vertex_normal');
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terrainMesh.indexBuffer);
-    gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 36, 12);
-    gl.enableVertexAttribArray(normalLocation);
+// Light parameters
+/** @global Light position in VIEW coordinates */
+var lightPosition = [0, 2, 2];
+/** @global Ambient light color/intensity for Phong reflection */
+var ambientLightColor = [0.1, 0.1, 0.1];
+/** @global Diffuse light color/intensity for Phong reflection */
+var diffuseLightColor = [1, 1, 1];
+/** @global Specular light color/intensity for Phong reflection */
+var specularLightColor = [1, 1, 1];
 
-    const colorLocation = gl.getAttribLocation(shaderProgram, 'a_Color');
-    gl.bindBuffer(gl.ARRAY_BUFFER, terrainMesh.vertexBuffer);
-    gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 36, 24);
-    gl.enableVertexAttribArray(colorLocation);
+function generateTerrain(resolution, slices, jaggedness) {
 
-    const modelViewProjectionLocation = gl.getUniformLocation(shaderProgram, 'u_PVM_transform');
-    const normalMatrixLocation = gl.getUniformLocation(shaderProgram, 'u_VM_transform');
+    let positionData = [];
+    let normalData = [];
+    let faceData = [];
 
-    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_position'), [0.0, 100.0, 0.0]);
-    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Light_color'), [1, 1, 1]);
-    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_Shininess'), 10);
-    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Ambient_color'), [1, 1, 1]);
-    let z_min = terrain[0]
-    let z_max = terrain[0]
-    for(let i= 1; i<terrain.length; i++){
-        if(parseInt(terrain[i],10) < z_min){
-            z_min = terrain[i];
-        }
-        if(parseInt(terrain[i],10) > z_max){
-            z_max = terrain[i];
+    // positionData: 1D array of floats
+    for (let i = 0; i <= resolution; i++) {
+        for (let j = 0; j <= resolution; j++) {
+            positionData.push(2 / resolution * j - 1);
+            positionData.push(2 / resolution * i - 1);
+            positionData.push(0);
         }
     }
-    console.log(z_min,z_max)
-    gl.uniform2fv(gl.getUniformLocation(shaderProgram, 'u_HeightRange'), [z_min,z_max]);
+
+    // faceData
+    for (let i = 0; i < resolution; i++) {
+        for (let j = 0; j < resolution; j++) {
+            // bottom left index
+            let bottomLeft = (i * (resolution + 1)) + j;
+            let triangular1 = [bottomLeft, bottomLeft + 1, bottomLeft + resolution + 1];
+            let triangular2 = [bottomLeft + 1, bottomLeft + resolution + 2, bottomLeft + resolution + 1];
+            faceData.push(...triangular1);
+            faceData.push(...triangular2);
+        }
+    }
+
+    // We'll need these to set up the WebGL buffers.
+    numVertices = positionData.length / 3;
+    numFaces = faceData.length / 3;
+
+    //shapeTerrain();
+    //console.log("Terrain: Sculpted terrain");
+
+    let delta = jaggedness/100
+    for (let i = 0; i < slices; i++) {
+        // construct a random fault plane
+        //let p = generateRandomPoint();
+
+        let p = glMatrix.vec3.create();
+        let x = Math.random() * 2 - 1;
+        let y = Math.random() * 2 - 1;
+        glMatrix.vec3.set(p, x, y, 0);
 
 
-    let rotation = 0;
-    frame = requestAnimationFrame(render);
+        //let n = generateRandomNormalVec();
+        let tmp = glMatrix.vec2.create()
+        tmp = glMatrix.vec2.random(tmp);
+        let n = glMatrix.vec3.fromValues(tmp[0], tmp[1], 0);
 
-    const modelViewProjectionMatrix = glMatrix.mat4.create();
+        // raise and lower vertices
+        for (let j = 0; j < numVertices; j++) {
+            // step1: get vertex b, test which side (b - p) * n >= 0
+            let v = glMatrix.vec3.create();
+            //getVertex(v, j);
+            // MP2: Implement this function!
+            v[0] = positionData[j * 3];
+            v[1] = positionData[j * 3 + 1];
+            v[2] = positionData[j * 3 + 2];
 
-    function render() {
+            let sub = glMatrix.vec3.create();
+            glMatrix.vec3.subtract(sub, v, p);
+
+            let dist = glMatrix.vec3.distance(v, p);
+
+            //let funcValue = calculateCoefficientFunction(dist);
+            let bottomLeft = glMatrix.vec3.fromValues(-1, -1, 0);
+            let topRight = glMatrix.vec3.fromValues(1, 1, 0);
+            let R = glMatrix.vec3.distance(topRight, bottomLeft);
+            //let funcValue = Math.pow(1 - Math.pow(dist / R, 2), 2);
+            let funcValue = dist/R
+
+            if (glMatrix.vec3.dot(sub, n) > 0)
+                v[2] += delta * funcValue
+            else
+                v[2] -= delta * funcValue
+
+            //setVertex(b, j);
+            positionData[j * 3] = v[0];
+            positionData[j * 3 + 1] = v[1];
+            positionData[j * 3 + 2] = v[2];
+        }
+    }
+
+    //do vertical separation
+    /**let h = (resolution - 0)/4
+    let minZ = Number.MAX_VALUE;
+    let maxZ = Number.MIN_VALUE;
+    for (let i = 0; i < numVertices; i++) {
+        minZ = Math.min(minZ, positionData[i * 3 + 2]);
+        maxZ = Math.max(maxZ, positionData[i * 3 + 2]);
+    }
+
+    for (let i = 0; i < numVertices; i++) {
+        positionData[i * 3 + 2] = ((positionData[i * 3 + 2] - minZ)/(maxZ - minZ))*h-(h/2)
+    }**/
+
+    //calculateNormals();
+    //console.log("Terrain: Generated normals");
+    // MP2: Implement this function!
+
+    // initialize an NArray containing M normals
+    let normals = [];
+    for (let i = 0; i < numVertices; i++) {
+        normals.push([0, 0, 0]);
+    }
+
+    // iterate all triangles
+    for (let i = 0; i < numFaces; i++) {
+        //let indices = getTriangleVertexByIndex(i);
+        if (i < 0 || i >= numFaces) {
+            throw 'Invalid idx!';
+        }
+        let indices = [];
+        for (let j = 0; j < 3; j++) {
+            indices.push(faceData[i * 3 + j]);
+        }
+
+        //let vertices = createAndGetPosDataByIndex(indices);
+
+        let vertices = []
+        for (let i = 0; i < indices.length; i++) {
+            let tmp = glMatrix.vec3.create();
+            //getVertex(tmp, indices[i]);
+            tmp[0] = positionData[indices[i] * 3];
+            tmp[1] = positionData[indices[i] * 3 + 1];
+            tmp[2] = positionData[indices[i] * 3 + 2];
+            vertices.push(tmp);
+        }
+
+        //let N = computeNormalForTriangles(vertices[0], vertices[1], vertices[2]);
+
+        let sub1 = glMatrix.vec3.create();
+        let sub2 = glMatrix.vec3.create();
+        glMatrix.vec3.subtract(sub1, vertices[1], vertices[0]);
+        glMatrix.vec3.subtract(sub2, vertices[2], vertices[0]);
+        let N = glMatrix.vec3.create();
+        glMatrix.vec3.cross(N, sub1, sub2);
+
+
+        // average vertex normals by scale with factor 0.5
+        glMatrix.vec3.scale(N, N, 0.5);
+
+        indices.forEach(function (index) {
+            normals[index] = normals[index].map((a, i) => a + N[i]);
+        });
+    }
+
+    // normalize each normal in N array to unit length
+    for (let i = 0; i < numVertices; i++) {
+        let tmp = glMatrix.vec3.fromValues(normals[i][0], normals[i][1], normals[i][2]);
+        glMatrix.vec3.normalize(tmp, tmp);
+        normalData.push(...tmp);
+    }
+
+    return {
+        positionData,
+        normalData,
+        faceData
+    };
+}
+
+function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
+
+    // Let the Terrain object set up its own buffers.
+    let terrain = generateTerrain(resolution, slices, jaggedness);
+
+    // Query the index of each attribute and uniform in the shader program.
+    shaderProgram.locations = {};
+    shaderProgram.locations.vertexPosition = gl.getAttribLocation(shaderProgram, "vertexPosition");
+    shaderProgram.locations.vertexNormal = gl.getAttribLocation(shaderProgram, "vertexNormal");
+
+    shaderProgram.locations.modelViewMatrix = gl.getUniformLocation(shaderProgram, "modelViewMatrix");
+    shaderProgram.locations.projectionMatrix = gl.getUniformLocation(shaderProgram, "projectionMatrix");
+    shaderProgram.locations.normalMatrix = gl.getUniformLocation(shaderProgram, "normalMatrix");
+
+    shaderProgram.locations.kAmbient = gl.getUniformLocation(shaderProgram, "kAmbient");
+    shaderProgram.locations.kDiffuse = gl.getUniformLocation(shaderProgram, "kDiffuse");
+    shaderProgram.locations.kSpecular = gl.getUniformLocation(shaderProgram, "kSpecular");
+    shaderProgram.locations.shininess = gl.getUniformLocation(shaderProgram, "shininess");
+
+    shaderProgram.locations.lightPosition = gl.getUniformLocation(shaderProgram, "lightPosition");
+    shaderProgram.locations.ambientLightColor = gl.getUniformLocation(shaderProgram, "ambientLightColor");
+    shaderProgram.locations.diffuseLightColor = gl.getUniformLocation(shaderProgram, "diffuseLightColor");
+    shaderProgram.locations.specularLightColor = gl.getUniformLocation(shaderProgram, "specularLightColor");
+
+    shaderProgram.locations.minZ = gl.getUniformLocation(shaderProgram, "minZ");
+    shaderProgram.locations.maxZ = gl.getUniformLocation(shaderProgram, "maxZ");
+
+    let vertexArrayObject = gl.createVertexArray();
+    let vertexPositionBuffer = gl.createBuffer();
+    let vertexNormalBuffer = gl.createBuffer();
+    let triangleIndexBuffer = gl.createBuffer();
+    // Create and bind the vertex array object.
+    gl.bindVertexArray(vertexArrayObject);
+
+    // Create the position buffer and load it with the position data.
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(terrain.positionData), gl.STATIC_DRAW);
+    vertexPositionBuffer.itemSize = 3;
+    vertexPositionBuffer.numItems = numVertices;
+    console.log("Loaded ", vertexPositionBuffer.numItems, " vertices.");
+
+    // Link the position buffer to the attribute in the shader program.
+    gl.vertexAttribPointer(shaderProgram.locations.vertexPosition, vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(shaderProgram.locations.vertexPosition);
+
+    // Specify normals to be able to do lighting calculations
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexNormalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(terrain.normalData), gl.STATIC_DRAW);
+    vertexNormalBuffer.itemSize = 3;
+    vertexNormalBuffer.numItems = numVertices;
+    console.log("Loaded ", vertexNormalBuffer.numItems, " normals.");
+
+    // Link the normal buffer to the attribute in the shader program.
+    gl.vertexAttribPointer(shaderProgram.locations.vertexNormal, vertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(shaderProgram.locations.vertexNormal);
+
+    // Set up the buffer of indices that tells WebGL which vertices are
+    // part of which triangles.
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangleIndexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(terrain.faceData), gl.STATIC_DRAW);
+    triangleIndexBuffer.itemSize = 1;
+    triangleIndexBuffer.numItems = terrain.faceData.length;
+    console.log("Loaded ", triangleIndexBuffer.numItems, " triangles.");
+
+    // Set the background color to sky blue (you can change this if you like).
+    gl.clearColor(0.82, 0.93, 0.99, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    // setMaxMinElevationUniforms();
+
+    let minZ = Number.MAX_VALUE;
+    let maxZ = Number.MIN_VALUE;
+    for (let i = 0; i < numVertices; i++) {
+        let tmp = [0, 0, 0]
+        //getVertex(tmp, i);
+        tmp[0] = terrain.positionData[i * 3];
+        tmp[1] = terrain.positionData[i * 3 + 1];
+        tmp[2] = terrain.positionData[i * 3 + 2];
+
+        minZ = Math.min(minZ, tmp[2]);
+        maxZ = Math.max(maxZ, tmp[2]);
+    }
+
+    gl.uniform1f(shaderProgram.locations.minZ, minZ);
+    gl.uniform1f(shaderProgram.locations.maxZ, maxZ);
+
+    //setLightUniforms(ambientLightColor, diffuseLightColor, specularLightColor, lightPosition);
+
+    gl.uniform3fv(shaderProgram.locations.ambientLightColor, ambientLightColor);
+    gl.uniform3fv(shaderProgram.locations.diffuseLightColor, diffuseLightColor);
+    gl.uniform3fv(shaderProgram.locations.specularLightColor, specularLightColor);
+    gl.uniform3fv(shaderProgram.locations.lightPosition, lightPosition);
+
+    //setMaterialUniforms(kAmbient, kDiffuse, kSpecular, shininess);
+
+    gl.uniform3fv(shaderProgram.locations.kAmbient, kAmbient);
+    gl.uniform3fv(shaderProgram.locations.kDiffuse, kDiffuse);
+    gl.uniform3fv(shaderProgram.locations.kSpecular, kSpecular);
+    gl.uniform1f(shaderProgram.locations.shininess, shininess);
+
+    frame = requestAnimationFrame(animate);
+    let rotation = 0
+    function animate() {
         if (current_scene !== "terrain") {
             console.log("Dropped frames in terrain.")
             return
         }
-        draw()
+        clearGL()
+        //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        rotation += 0.0025;
-        const cameraRadius = 150;
-        const cameraHeight = 100;
-        const cameraX = cameraRadius * Math.sin(rotation);
-        const cameraZ = cameraRadius * Math.cos(rotation);
-        const cameraPosition = [cameraX, cameraHeight, cameraZ];
-        gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_Camera'), cameraPosition);
+        // Generate the projection matrix using perspective projection.
+        glMatrix.mat4.perspective(projectionMatrix, 1, gl.viewportWidth / gl.viewportHeight, 0.1, 2000);
 
-        glMatrix.mat4.lookAt(normalMatrixLocation, cameraPosition, [resolution / 2, 0, resolution / 2], [0, 1, 0]);
-        glMatrix.mat4.perspective(modelViewProjectionLocation, 45 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 1, 2000);
+        // calculate eye Pt factor & referenced by MP1.js
+        rotation += 0.001
 
-        glMatrix.mat4.multiply(modelViewProjectionMatrix, modelViewProjectionLocation, normalMatrixLocation);
-        gl.uniformMatrix4fv(modelViewProjectionLocation, false, modelViewProjectionMatrix);
+        glMatrix.mat4.lookAt(modelViewMatrix, glMatrix.vec3.fromValues(2 * Math.cos(rotation), 2 * Math.sin(rotation), 2), [0, 0, 0], [0, 0, 1]);
 
-        gl.drawElements(gl.TRIANGLES, terrainMesh.numVertices, gl.UNSIGNED_SHORT, 0);
+        //setMatrixUniforms();
 
-        frame = requestAnimationFrame(render);
+        gl.uniformMatrix4fv(shaderProgram.locations.modelViewMatrix, false, modelViewMatrix);
+        gl.uniformMatrix4fv(shaderProgram.locations.projectionMatrix, false, projectionMatrix);
+
+        // We want to transform the normals by the inverse-transpose of the
+        // Model/View matrix
+        glMatrix.mat3.fromMat4(normalMatrix, modelViewMatrix);
+        glMatrix.mat3.transpose(normalMatrix, normalMatrix);
+        glMatrix.mat3.invert(normalMatrix, normalMatrix);
+
+        gl.uniformMatrix3fv(shaderProgram.locations.normalMatrix, false, normalMatrix);
+
+        gl.drawElements(gl.TRIANGLES, terrain.faceData.length, gl.UNSIGNED_INT, 0);
+
+        frame = requestAnimationFrame(animate);
     }
 }

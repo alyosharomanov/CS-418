@@ -5,7 +5,7 @@ let frame = 0
 /**
  * Draw one frame
  */
-function draw() {
+function clearGL() {
     gl.clearColor(0.075, 0.16, 0.292, 1)
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -25,8 +25,10 @@ function fillScreen() {
     canvas.style.height = ''
     // to do: update aspect ratio of projection matrix here
     if (window.gl) {
+        window.gl.viewportWidth = canvas.width;
+        window.gl.viewportHeight = canvas.height;
         gl.viewport(0,0, canvas.width, canvas.height)
-        draw()
+        clearGL()
     }
 }
 
