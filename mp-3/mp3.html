@@ -15,18 +15,32 @@ var controlOptions =
   {"terrain":
     {"label":"Required: Faulting-method terrain"
     ,"options":
-      {"resolution":{"type":"number","default":100,"label":"Grid size [≥1i]"}
-      ,"slices":{"type":"number","default":100,"label":"Fractures [≥1i]"}
-      ,"cliffCutoff":{"type":"number","default":.5,"label":"Cliff Cut-off [0<f<1]"}
+      {"resolution":{"type":"number","default":200,"label":"Grid size"}
+      ,"slices":{"type":"number","default":200,"label":"Fractures"}
+      ,"erode":
+        {"type":"radio"
+        ,"options":
+          {"rough":"No Weathering"
+          ,"spheroid":"Spheroidal Weathering"
+          ,"drain":"Hydraulic Drainage"
+          }
+        }
+      ,"spheroid_it":{"type":"number","default":5,"label":"Spheroidal Iterations"}
+      ,"drain_it":{"type":"number","default":350,"label":"Hydraulic Iterations"}
+      ,"erosion":{"type":"number","default":.3,"label":"Erosion Rate"}
+      ,"deposition":{"type":"number","default":.2,"label":"Depostion Rate"}
+      ,"rain":{"type":"number","default":.3,"label":"Rain Amount"}
+      ,"evaporation":{"type":"number","default":.5,"label":"Evaporation Rate"}
+      ,"cliffs":{"type":"checkbox","default":false,"label":"Cliffs"}
       }
     }
   ,"torus":
     {"label":"Optional: Torus objects"
     ,"options":
-      {"r1":{"type":"number","default":1,"label":"Major radius [>0f]"}
-      ,"r2":{"type":"number","default":0.25,"label":"Minor radius [>0f]"}
-      ,"res1":{"type":"number","default":48,"label":"Number of rings [≥3i]"}
-      ,"res2":{"type":"number","default":24,"label":"Points per ring  [≥3i]"}
+      {"r1":{"type":"number","default":1,"label":"Major radius"}
+      ,"r2":{"type":"number","default":0.25,"label":"Minor radius"}
+      ,"res1":{"type":"number","default":48,"label":"Number of rings"}
+      ,"res2":{"type":"number","default":24,"label":"Points per ring"}
       }
     }
   }

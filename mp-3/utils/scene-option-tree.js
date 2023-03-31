@@ -41,6 +41,16 @@ window.addEventListener('load', event=> {
                     })
                     // and select the first radio button by default
                     d.querySelector('input[name="'+key+'"]').click()
+                } else if (opt2.type == 'checkbox') {
+                    let cb = document.createElement('input')
+                    cb.type = opt2.type
+                    cb.name = key
+                    cb.value = key
+                    cb.checked = opt2.default
+                    let lab = document.createElement('label')
+                    lab.append(cb)
+                    lab.append(opt2.label)
+                    d.append(lab)
                 } else {
                     // not a radio, so it's a number, checkbox, or text type
                     // make an appropriate input element and label
@@ -48,8 +58,6 @@ window.addEventListener('load', event=> {
                     num.type = opt2.type
                     num.name = key
                     num.value = opt2.default // for number, text
-                    if (num.value != opt2.default)
-                        num.checked = opt2.default // for checkbox
                     num.step = 'any' // for number; ignored otherwise
                     let lab = document.createElement('label')
                     lab.append(num)
@@ -61,7 +69,7 @@ window.addEventListener('load', event=> {
     })
     // select the first radio button by default
     c.querySelector('input[type="radio"]').click()
-    
+
     // register a callback for the button too
     let b = document.querySelector('.controls input[type="submit"]')
     b.addEventListener('click', event => {
@@ -77,13 +85,13 @@ window.addEventListener('load', event=> {
             let t = controlOptions[scene].options?.[k]?.['type']
             let d = controlOptions[scene].options?.[k]?.['default']
             if (t == 'number') return [k, Number(v)||d||0]
-            if (t == 'checkbox') return [k, v == 'true']
+            if (t == 'checkbox') return [k, true] // only in formdata if true
             return [k,v]
         }))
         // add any missing options if they have defaults
         if (controlOptions[scene].options) Object.entries(controlOptions[scene].options).forEach(([k,v])=>{
             if (!(k in options)) {
-                 if (v.type == 'checkbox') options[k] = false;
+                 if (v.type == 'checkbox') options[k] = false
                  else if ('default' in v) options[k] = v.default
             }
         })
