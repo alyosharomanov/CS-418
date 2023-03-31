@@ -57,7 +57,7 @@ async function setupScene(scene, options) {
     }
 
     if (scene === "terrain") {
-        drawTerrain(shaderPrograms[scene], options["resolution"], options["slices"])
+        drawTerrain(shaderPrograms[scene], options["resolution"], options["slices"], options["cliffCutoff"])
     } else if (scene === "torus") {
         drawTorus(shaderPrograms[scene], options["r1"], options["r2"], options["res1"], options["res2"])
     }

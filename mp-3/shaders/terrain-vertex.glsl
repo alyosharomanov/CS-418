@@ -9,9 +9,9 @@ uniform vec2 u_HeightRange;
 
 varying vec3 v_vertex;
 varying vec3 v_normal;
-varying vec3 v_ambientLightColor;
-varying vec3 v_diffuseLightColor;
+varying vec3 v_color;
 
+// from http://learnwebgl.brown37.net/09_lights/lights_specular.html
 void main(void) {
     v_vertex = (u_modelViewMatrix * vec4(a_vertexPosition, 1.0)).xyz;
     v_normal = normalize(u_normalMatrix * a_vertexNormal);
@@ -25,8 +25,7 @@ void main(void) {
     } else {
         color = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (height_percentage - 0.666) * 3.0);
     }
-    v_ambientLightColor = color * vec3(.1, .1, .1);
-    v_diffuseLightColor = color;
+    v_color = color;
 
     gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(a_vertexPosition, 1.0);
 }

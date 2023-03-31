@@ -73,21 +73,23 @@ function generateTerrain(resolution, slices) {
     // create normals
     normals = Array(vertices.length).fill(0)
     for (let i = 0; i < indices.length; i+=3) {
-        let triangles = []
+        let triangle = []
         for (let j = 0; j < 3; j++) {
-            triangles.push(glMatrix.vec3.fromValues(vertices[indices[i + j] * 3], vertices[indices[i + j] * 3 + 1], vertices[indices[i + j] * 3 + 2]))
+            triangle.push(glMatrix.vec3.fromValues(vertices[indices[i + j] * 3], vertices[indices[i + j] * 3 + 1], vertices[indices[i + j] * 3 + 2]))
         }
 
-        let vec1 = glMatrix.vec3.create()
-        glMatrix.vec3.subtract(vec1, triangles[1], triangles[0])
-        let vec2 = glMatrix.vec3.create()
-        glMatrix.vec3.subtract(vec2, triangles[2], triangles[0])
+        // inspired from https://www.khronos.org/opengl/wiki/Calculating_a_Surface_Normal
+        let u = glMatrix.vec3.create()
+        glMatrix.vec3.subtract(u, triangle[1], triangle[0])
+        let v = glMatrix.vec3.create()
+        glMatrix.vec3.subtract(v, triangle[2], triangle[0])
         let normal = glMatrix.vec3.create()
-        glMatrix.vec3.cross(normal, vec1, vec2)
-
+        glMatrix.vec3.cross(normal, u, v)
         for (let j = 0; j < 3; j++) {
+            let normalized = glMatrix.vec3.fromValues(normals[indices[i + j] * 3] + normal[0], normals[indices[i + j] * 3 + 1] + normal[1], normals[indices[i + j] * 3 + 2] + normal[2]);
+            glMatrix.vec3.normalize(normalized, normalized);
             for (let k = 0; k < 3; k++) {
-                normals[indices[i + j] * 3 + k] = normals[indices[i + j] * 3 + k] + normal[k]
+                normals[indices[i + j] * 3 + k] = normalized[k]
             }
         }
     }
@@ -105,8 +107,9 @@ function generateTerrain(resolution, slices) {
  * @param shaderProgram shader program for drawing terrain
  * @param resolution resolution of the terrain
  * @param slices number of horizontal slices
+ * @param cliffCutoff float at which we determine a fragment is a cliff or not
  */
-function drawTerrain(shaderProgram, resolution, slices) {
+function drawTerrain(shaderProgram, resolution, slices, cliffCutoff) {
     let terrain = generateTerrain(resolution, slices)
 
     shaderProgram.vertexPosition = gl.getAttribLocation(shaderProgram, "a_vertexPosition")
@@ -117,7 +120,8 @@ function drawTerrain(shaderProgram, resolution, slices) {
     gl.uniform2fv(gl.getUniformLocation(shaderProgram, "u_HeightRange"), [terrain.min, terrain.max])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_specularLightColor'), [1, 1, 1])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_lightPosition'), [1, 1, 1])
-    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_shininess'), 10)
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_shininess'), 5)
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_cliffCutoff'), cliffCutoff)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
     gl.bufferData(gl.ARRAY_BUFFER, terrain.vertices, gl.STATIC_DRAW)

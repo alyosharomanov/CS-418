@@ -1,3 +1,4 @@
 Shiny (10 points)
 Height-based color ramp (20 points)
+Rocky cliffs (20 points)
 Torus (15 points)

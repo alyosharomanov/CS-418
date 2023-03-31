@@ -10,7 +10,6 @@
     <script src="terrain.js"></script>
     <script src="torus.js"></script>
 
-
 <script>// configures controls
 var controlOptions =
   {"terrain":
@@ -18,6 +17,7 @@ var controlOptions =
     ,"options":
       {"resolution":{"type":"number","default":100,"label":"Grid size [≥1i]"}
       ,"slices":{"type":"number","default":100,"label":"Fractures [≥1i]"}
+      ,"cliffCutoff":{"type":"number","default":.5,"label":"Cliff Cut-off [0<f<1]"}
       }
     }
   ,"torus":
