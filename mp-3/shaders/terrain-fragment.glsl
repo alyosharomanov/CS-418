@@ -1,25 +1,21 @@
 precision mediump float;
 
-varying vec3 vertexNormalView;
-varying vec3 vertexPositionView;
+uniform vec3 u_specularLightColor;
+uniform vec3 u_lightPosition;
+uniform float u_shininess;
 
-varying vec3 kAmbient;
-varying vec3 kDiffuse;
+varying vec3 v_vertex;
+varying vec3 v_normal;
+varying vec3 v_ambientLightColor;
+varying vec3 v_diffuseLightColor;
 
 void main(void) {
-    vec3 ambientLightColor = vec3(.1, .1, .1);
-    vec3 diffuseLightColor = vec3(1, 1, 1);
-    vec3 specularLightColor = vec3(1, 1, 1);
-    vec3 lightPosition = vec3(1, 1, 1);
-    vec3 kSpecular = vec3(1, 1, 1);
-    float shininess = 10.0;
+    vec3 lightVector = normalize(u_lightPosition - v_vertex);
+    vec3 reflectionVector = normalize(reflect(-lightVector, v_normal));
+    vec3 viewVector = normalize(-v_vertex);
 
-    vec3 lightVector = normalize(lightPosition - vertexPositionView);
-    vec3 reflectionVector = normalize(reflect(-lightVector, vertexNormalView));
-    vec3 viewVector = normalize(-vertexPositionView);
-    float diffuseWeight = max(dot(vertexNormalView, lightVector), 0.0);
-    float rDotV = max(dot(reflectionVector, viewVector), 0.0);
-    float specularWeight = pow(rDotV, shininess);
+    float diffuseWeight = max(dot(v_normal, lightVector), 0.3);
+    float specularWeight = pow(max(dot(reflectionVector, viewVector), 0.0), u_shininess);
 
-    gl_FragColor = vec4((kAmbient * ambientLightColor + kDiffuse * diffuseLightColor * diffuseWeight + kSpecular * specularLightColor * specularWeight), 1.0);
+    gl_FragColor = vec4((v_ambientLightColor + v_diffuseLightColor * diffuseWeight + u_specularLightColor * specularWeight), 1.0);
 }

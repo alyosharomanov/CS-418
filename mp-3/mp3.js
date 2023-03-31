@@ -3,15 +3,6 @@ let current_scene = "null"
 let frame = 0
 
 /**
- * Draw one frame
- */
-function clearGL() {
-    gl.clearColor(0.075, 0.16, 0.292, 1)
-    gl.enable(gl.DEPTH_TEST);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-}
-
-/**
  * Resizes the canvas to completely fill the screen
  */
 function fillScreen() {
@@ -25,10 +16,10 @@ function fillScreen() {
     canvas.style.height = ''
     // to do: update aspect ratio of projection matrix here
     if (window.gl) {
-        window.gl.viewportWidth = canvas.width;
-        window.gl.viewportHeight = canvas.height;
+        gl.enable(gl.DEPTH_TEST);
         gl.viewport(0,0, canvas.width, canvas.height)
-        clearGL()
+        gl.clearColor(0.075, 0.16, 0.292, 1)
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     }
 }
 
@@ -66,7 +57,7 @@ async function setupScene(scene, options) {
     }
 
     if (scene === "terrain") {
-        drawTerrain(shaderPrograms[scene], options["resolution"], options["slices"], options["jaggedness"])
+        drawTerrain(shaderPrograms[scene], options["resolution"], options["slices"])
     } else if (scene === "torus") {
         drawTorus(shaderPrograms[scene], options["r1"], options["r2"], options["res1"], options["res2"])
     }
@@ -76,10 +67,10 @@ window.addEventListener('load', setup)
 window.addEventListener('resize', fillScreen)
 
 /**
- *
- * @param vs_source
- * @param fs_source
- * @returns {WebGLProgram}
+ * Compiles a vertex and fragment shader to a shader program
+ * @param vs_source string with the vertex shader
+ * @param fs_source string with the fragment shader
+ * @returns {WebGLProgram} compiled shader program
  */
 function compileAndLinkGLSL(vs_source, fs_source) {
   let vs = gl.createShader(gl.VERTEX_SHADER)

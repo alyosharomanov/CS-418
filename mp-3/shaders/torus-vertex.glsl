@@ -1,10 +1,15 @@
-attribute vec4 aPosition;
-attribute vec3 aNormal;
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
+precision mediump float;
+
+attribute vec4 a_vertexPosition;
+attribute vec3 a_vertexNormal;
+
+uniform mat4 u_modelViewMatrix;
+uniform mat4 u_projectionMatrix;
+
 varying vec3 v_normal;
 
 void main() {
-    gl_Position = uProjectionMatrix * uModelViewMatrix * aPosition;
-    v_normal = aNormal;
+    v_normal = a_vertexNormal;
+
+    gl_Position = u_projectionMatrix * u_modelViewMatrix * a_vertexPosition;
 }

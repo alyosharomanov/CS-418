@@ -4,44 +4,29 @@
     <meta charset="utf-8">
     <title>CS 418 Terrain project</title>
     <script src="utils/scene-option-tree.js"></script><!-- handles controls -->
-    <script src="utils/matrices.js"></script>
-    <script src="utils/gl-matrix-min.js"></script>
+    <script src="utils/gl-matrix.js"></script>
 
+    <script src="mp3.js"></script>
     <script src="terrain.js"></script>
     <script src="torus.js"></script>
-    <script src="mp3.js"></script>
 
 
 <script>// configures controls
-/**
- * Modify this object to chose what options you want in the control pane.
- * Top-level entries become top-section radio buttons.
- * Nested entries become lower-section inputs of various types.
- */
 var controlOptions =
   {"terrain":
     {"label":"Required: Faulting-method terrain"
     ,"options":
-      {"resolution":{"type":"number","default":100,"label":"Grid size"}
-      ,"slices":{"type":"number","default":100,"label":"Fractures"}
-      ,"jaggedness":{"type":"number","default":5,"label":"Jaggedness"}
-      ,"erode":
-        {"type":"radio"
-        ,"options":
-          {"rough":"No Weathering"
-          ,"spheroid":"Spheroidal Weathering"
-          ,"drain":"Hydraulic drainage"
-          }
-        }
+      {"resolution":{"type":"number","default":100,"label":"Grid size [≥1i]"}
+      ,"slices":{"type":"number","default":100,"label":"Fractures [≥1i]"}
       }
     }
   ,"torus":
     {"label":"Optional: Torus objects"
     ,"options":
-      {"r1":{"type":"number","default":1,"label":"Major radius"}
-      ,"r2":{"type":"number","default":0.25,"label":"Minor radius"}
-      ,"res1":{"type":"number","default":48,"label":"Number of rings"}
-      ,"res2":{"type":"number","default":24,"label":"Points per ring"}
+      {"r1":{"type":"number","default":1,"label":"Major radius [>0f]"}
+      ,"r2":{"type":"number","default":0.25,"label":"Minor radius [>0f]"}
+      ,"res1":{"type":"number","default":48,"label":"Number of rings [≥3i]"}
+      ,"res2":{"type":"number","default":24,"label":"Points per ring  [≥3i]"}
       }
     }
   }

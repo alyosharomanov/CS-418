@@ -1,23 +1,23 @@
 precision mediump float;
 
-attribute vec3 vertexPosition;
-attribute vec3 vertexNormal;
-
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
-uniform mat3 normalMatrix;
-
-varying vec3 vertexPositionView;
-varying vec3 vertexNormalView;
-varying vec3 kAmbient;
-varying vec3 kDiffuse;
-
+attribute vec3 a_vertexPosition;
+attribute vec3 a_vertexNormal;
+uniform mat4 u_modelViewMatrix;
+uniform mat4 u_projectionMatrix;
+uniform mat3 u_normalMatrix;
 uniform vec2 u_HeightRange;
 
+varying vec3 v_vertex;
+varying vec3 v_normal;
+varying vec3 v_ambientLightColor;
+varying vec3 v_diffuseLightColor;
+
 void main(void) {
-    float height_percentage = (vertexPosition.z - u_HeightRange.x) / (u_HeightRange.y - u_HeightRange.x);
+    v_vertex = (u_modelViewMatrix * vec4(a_vertexPosition, 1.0)).xyz;
+    v_normal = normalize(u_normalMatrix * a_vertexNormal);
 
     vec3 color;
+    float height_percentage = (a_vertexPosition.z - u_HeightRange.x) / (u_HeightRange.y - u_HeightRange.x);
     if (height_percentage < 0.333) {
         color = mix(vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0), height_percentage * 3.0);
     } else if (height_percentage < 0.666) {
@@ -25,11 +25,8 @@ void main(void) {
     } else {
         color = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (height_percentage - 0.666) * 3.0);
     }
-    kAmbient = color;
-    kDiffuse = color;
+    v_ambientLightColor = color * vec3(.1, .1, .1);
+    v_diffuseLightColor = color;
 
-    vertexPositionView =(modelViewMatrix * vec4(vertexPosition, 1.0)).xyz;
-    vertexNormalView = normalize(normalMatrix * vertexNormal);
-
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(vertexPosition, 1.0);
+    gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(a_vertexPosition, 1.0);
 }

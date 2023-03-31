@@ -1,191 +1,164 @@
-function generateTerrain(resolution, slices, jaggedness) {
+/**
+ * Generate vertices, normals, and indices for the terrain
+ * @param resolution resolution of the terrain
+ * @param slices number of horizontal slices
+ * @return {vertices, normals, indices, min, max}
+ */
+function generateTerrain(resolution, slices) {
 
-    let vertices = [];
-    let normals = [];
-    let indices = [];
+    let vertices = []
+    let normals = []
+    let indices = []
 
     // create vertices with x, y, z
     for (let i = 0; i <= resolution; i++) {
         for (let j = 0; j <= resolution; j++) {
-            vertices.push(2*j / resolution - 1);
-            vertices.push(2*i / resolution - 1);
-            vertices.push(0);
+            vertices.push(2*j / resolution - 1, 2*i / resolution - 1, 0)
         }
     }
+    let size = vertices.length / 3
 
     // create indices for keeping track of the triangles
     for (let i = 0; i < resolution; i++) {
         for (let j = 0; j < resolution; j++) {
-            let bottomLeft = (i * (resolution + 1)) + j;
-            indices.push(...[bottomLeft, bottomLeft + 1, bottomLeft + resolution + 1]);
-            indices.push(...[bottomLeft + 1, bottomLeft + resolution + 2, bottomLeft + resolution + 1]);
+            let k = (i * (resolution + 1)) + j
+            indices.push(k, k + 1, k + resolution + 1)
+            indices.push(k + 1, k + resolution + 2, k + resolution + 1)
         }
     }
 
-    let size = vertices.length / 3;
-    let numFaces = indices.length / 3;
-
-    //shape terrain
+    // generate terrain
     for (let i = 0; i < slices; i++) {
         // construct a random fault plane
-        let faultPlane = glMatrix.vec3.create();
-        let x = Math.random() * 2 - 1;
-        let y = Math.random() * 2 - 1;
-        glMatrix.vec3.set(faultPlane, x, y, 0);
-
-        let random = glMatrix.vec2.random(glMatrix.vec2.create());
-        let randomNormalVec = glMatrix.vec3.fromValues(random[0], random[1], 0);
+        let fault = glMatrix.vec3.create()
+        glMatrix.vec3.set(fault, Math.random() * 2 - 1, Math.random() * 2 - 1, 0)
+        let random = glMatrix.vec3.random(glMatrix.vec3.create())
 
         // raise and lower vertices
         for (let j = 0; j < size; j++) {
-            let vertex = glMatrix.vec3.fromValues(vertices[j * 3], vertices[j * 3 + 1], vertices[j * 3 + 2]);
+            let vertex = glMatrix.vec3.fromValues(vertices[j * 3], vertices[j * 3 + 1], vertices[j * 3 + 2])
+            let sub = glMatrix.vec3.create()
+            glMatrix.vec3.subtract(sub, vertex, fault)
 
-            let sub = glMatrix.vec3.create();
-            glMatrix.vec3.subtract(sub, vertex, faultPlane);
-
-            let delta = jaggedness/100
-            let dist = glMatrix.vec3.distance(vertex, faultPlane) / (2 * Math.sqrt(2))
-
-            if (glMatrix.vec3.dot(sub, randomNormalVec) > 0)
-                vertex[2] += delta * dist
+            if (glMatrix.vec3.dot(sub, random) > 0)
+                vertex[2] += 1/resolution
             else
-                vertex[2] -= delta * dist
+                vertex[2] -= 1/resolution
 
-            vertices[j * 3] = vertex[0];
-            vertices[j * 3 + 1] = vertex[1];
-            vertices[j * 3 + 2] = vertex[2];
+            for (let k = 0; k < 3; k++) {
+                vertices[j * 3 + k] = vertex[k]
+            }
         }
     }
 
-    //do vertical separation
-    let h = resolution/4
-    let min = Number.MAX_VALUE;
-    let max = Number.MIN_VALUE;
+    // calculate min and max
+    let min = Number.MAX_VALUE
+    let max = Number.MIN_VALUE
     for (let i = 0; i < size; i++) {
-        min = Math.min(min, vertices[i * 3 + 2]);
-        max = Math.max(max, vertices[i * 3 + 2]);
-    }
-    /**for (let i = 0; i < size; i++) {
-        vertices[i * 3 + 2] = ((vertices[i * 3 + 2] - minZ)/(maxZ - minZ)) * h - (h/2)
-    }**/
-
-    // initialize an NArray containing M normals
-    let normalsTemp = [];
-    for (let i = 0; i < size; i++) {
-        normalsTemp.push([0, 0, 0]);
+        min = Math.min(min, vertices[i * 3 + 2])
+        max = Math.max(max, vertices[i * 3 + 2])
     }
 
-    // iterate all triangles
-    for (let i = 0; i < numFaces; i++) {
-        let indicesTemp = [];
-        indicesTemp.push(indices[i * 3])
-        indicesTemp.push(indices[i * 3 + 1])
-        indicesTemp.push(indices[i * 3 + 2])
+    // do vertical separation
+    let h = (resolution/2) / resolution
+    for (let i = 0; i < size; i++) {
+        vertices[i * 3 + 2] = (vertices[i * 3 + 2] - min)/(max - min) * h - (h/2)
+    }
+    // update min and max
+    let min_ = min
+    let max_ = max
+    min = (min_ - min_)/(max_ - min_) * h - (h/2)
+    max = (max_ - min_)/(max_ - min_) * h - (h/2)
 
-        //let vertices = createAndGetPosDataByIndex(indicesTemp);
-        let verticesTemp = []
-        for (let i = 0; i < indicesTemp.length; i++) {
-            let tmp = glMatrix.vec3.create();
-            //getVertex(tmp, indicesTemp[i]);
-            tmp[0] = vertices[indicesTemp[i] * 3];
-            tmp[1] = vertices[indicesTemp[i] * 3 + 1];
-            tmp[2] = vertices[indicesTemp[i] * 3 + 2];
-            verticesTemp.push(tmp);
+    // create normals
+    normals = Array(vertices.length).fill(0)
+    for (let i = 0; i < indices.length; i+=3) {
+        let triangles = []
+        for (let j = 0; j < 3; j++) {
+            triangles.push(glMatrix.vec3.fromValues(vertices[indices[i + j] * 3], vertices[indices[i + j] * 3 + 1], vertices[indices[i + j] * 3 + 2]))
         }
 
-        //let N = computeNormalForTriangles(verticesTemp[0], verticesTemp[1], verticesTemp[2]);
+        let vec1 = glMatrix.vec3.create()
+        glMatrix.vec3.subtract(vec1, triangles[1], triangles[0])
+        let vec2 = glMatrix.vec3.create()
+        glMatrix.vec3.subtract(vec2, triangles[2], triangles[0])
+        let normal = glMatrix.vec3.create()
+        glMatrix.vec3.cross(normal, vec1, vec2)
 
-        let sub1 = glMatrix.vec3.create();
-        let sub2 = glMatrix.vec3.create();
-        glMatrix.vec3.subtract(sub1, verticesTemp[1], verticesTemp[0]);
-        glMatrix.vec3.subtract(sub2, verticesTemp[2], verticesTemp[0]);
-        let N = glMatrix.vec3.create();
-        glMatrix.vec3.cross(N, sub1, sub2);
-
-
-        // average vertex normalsTemp by scale with factor 0.5
-        glMatrix.vec3.scale(N, N, 0.5);
-
-        indicesTemp.forEach(function (index) {
-            normalsTemp[index] = normalsTemp[index].map((a, i) => a + N[i]);
-        });
-    }
-
-    for (let i = 0; i < size; i++) {
-        let tmp = glMatrix.vec3.fromValues(normalsTemp[i][0], normalsTemp[i][1], normalsTemp[i][2]);
-        glMatrix.vec3.normalize(tmp, tmp);
-        normals.push(...tmp);
-    }
-
-    min = Number.MAX_VALUE;
-    max = Number.MIN_VALUE;
-    for (let i = 0; i < size; i++) {
-        min = Math.min(min, vertices[i * 3 + 2]);
-        max = Math.max(max, vertices[i * 3 + 2]);
+        for (let j = 0; j < 3; j++) {
+            for (let k = 0; k < 3; k++) {
+                normals[indices[i + j] * 3 + k] = normals[indices[i + j] * 3 + k] + normal[k]
+            }
+        }
     }
 
     return {
         vertices: new Float32Array(vertices),
         normals: new Float32Array(normals),
         indices: new Uint32Array(indices),
-        min, max,
-        size
-    };
+        min, max
+    }
 }
 
-function drawTerrain(shaderProgram, resolution, slices, jaggedness) {
-    let terrain = generateTerrain(resolution, slices, jaggedness);
+/**
+ * Draw terrain
+ * @param shaderProgram shader program for drawing terrain
+ * @param resolution resolution of the terrain
+ * @param slices number of horizontal slices
+ */
+function drawTerrain(shaderProgram, resolution, slices) {
+    let terrain = generateTerrain(resolution, slices)
 
-    shaderProgram.varying = {};
-    shaderProgram.varying.vertexPosition = gl.getAttribLocation(shaderProgram, "vertexPosition");
-    shaderProgram.varying.vertexNormal = gl.getAttribLocation(shaderProgram, "vertexNormal");
-    shaderProgram.varying.modelViewMatrix = gl.getUniformLocation(shaderProgram, "modelViewMatrix");
-    shaderProgram.varying.projectionMatrix = gl.getUniformLocation(shaderProgram, "projectionMatrix");
-    shaderProgram.varying.normalMatrix = gl.getUniformLocation(shaderProgram, "normalMatrix");
-    shaderProgram.uniform = {};
-    shaderProgram.uniform.heightRange = gl.getUniformLocation(shaderProgram, "u_HeightRange")
+    shaderProgram.vertexPosition = gl.getAttribLocation(shaderProgram, "a_vertexPosition")
+    shaderProgram.vertexNormal = gl.getAttribLocation(shaderProgram, "a_vertexNormal")
+    shaderProgram.modelViewMatrix = gl.getUniformLocation(shaderProgram, "u_modelViewMatrix")
+    shaderProgram.projectionMatrix = gl.getUniformLocation(shaderProgram, "u_projectionMatrix")
+    shaderProgram.normalMatrix = gl.getUniformLocation(shaderProgram, "u_normalMatrix")
+    gl.uniform2fv(gl.getUniformLocation(shaderProgram, "u_HeightRange"), [terrain.min, terrain.max])
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_specularLightColor'), [1, 1, 1])
+    gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_lightPosition'), [1, 1, 1])
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_shininess'), 10)
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, terrain.vertices, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(shaderProgram.varying.vertexPosition, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(shaderProgram.varying.vertexPosition);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ARRAY_BUFFER, terrain.vertices, gl.STATIC_DRAW)
+    gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(shaderProgram.vertexPosition)
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, terrain.normals, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(shaderProgram.varying.vertexNormal, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(shaderProgram.varying.vertexNormal);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ARRAY_BUFFER, terrain.normals, gl.STATIC_DRAW)
+    gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(shaderProgram.vertexNormal)
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, terrain.indices, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, terrain.indices, gl.STATIC_DRAW)
 
-    gl.uniform2fv(shaderProgram.uniform.heightRange, [terrain.min, terrain.max]);
-
-    let modelViewMatrix = glMatrix.mat4.create()
     let projectionMatrix = glMatrix.mat4.create()
+    let modelViewMatrix = glMatrix.mat4.create()
     let normalMatrix = glMatrix.mat3.create()
     let rotation = 0
 
-    frame = requestAnimationFrame(animate);
-    function animate() {
+    frame = requestAnimationFrame(render)
+    function render() {
         if (current_scene !== "terrain") {
             console.log("Dropped frames in terrain.")
             return
         }
-        clearGL()
         rotation += 0.001
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-        glMatrix.mat4.perspective(projectionMatrix, 1, gl.viewportWidth / gl.viewportHeight, 0.1, 2000);
-        glMatrix.mat4.lookAt(modelViewMatrix, glMatrix.vec3.fromValues(2 * Math.cos(rotation), 2 * Math.sin(rotation), 2), [0, 0, 0], [0, 0, 1]);
+        glMatrix.mat4.perspective(projectionMatrix, 1, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 100)
+        let eye = glMatrix.vec3.fromValues(   2 * Math.cos(rotation), 2 * Math.sin(rotation), 2)
+        glMatrix.mat4.lookAt(modelViewMatrix, eye, [0, 0, 0], [0, 0, 1])
 
-        gl.uniformMatrix4fv(shaderProgram.varying.modelViewMatrix, false, modelViewMatrix);
-        glMatrix.mat3.fromMat4(normalMatrix, modelViewMatrix);
-        glMatrix.mat3.transpose(normalMatrix, normalMatrix);
-        glMatrix.mat3.invert(normalMatrix, normalMatrix);
-        gl.uniformMatrix3fv(shaderProgram.varying.normalMatrix, false, normalMatrix);
-        gl.uniformMatrix4fv(shaderProgram.varying.projectionMatrix, false, projectionMatrix);
+        glMatrix.mat3.fromMat4(normalMatrix, modelViewMatrix)
+        glMatrix.mat3.transpose(normalMatrix, normalMatrix)
+        glMatrix.mat3.invert(normalMatrix, normalMatrix)
 
-        gl.drawElements(gl.TRIANGLES, terrain.indices.length, gl.UNSIGNED_INT, 0);
+        gl.uniformMatrix4fv(shaderProgram.modelViewMatrix, false, modelViewMatrix)
+        gl.uniformMatrix3fv(shaderProgram.normalMatrix, false, normalMatrix)
+        gl.uniformMatrix4fv(shaderProgram.projectionMatrix, false, projectionMatrix)
+        gl.drawElements(gl.TRIANGLES, terrain.indices.length, gl.UNSIGNED_INT, 0)
 
-        frame = requestAnimationFrame(animate);
+        frame = requestAnimationFrame(render)
     }
 }
