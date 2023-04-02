@@ -13,9 +13,9 @@
 <script>// configures controls
 var controlOptions =
   {"terrain":
-    {"label":"Required: Faulting-method terrain"
+    {"label":"Faulting-method Terrain"
     ,"options":
-      {"resolution":{"type":"number","default":200,"label":"Grid size"}
+      {"resolution":{"type":"number","default":200,"label":"Grid Size"}
       ,"slices":{"type":"number","default":200,"label":"Fractures"}
       ,"erode":
         {"type":"radio"
@@ -28,14 +28,15 @@ var controlOptions =
       ,"spheroid_it":{"type":"number","default":20,"label":"Spheroidal Iterations"}
       ,"drain_it":{"type":"number","default":500,"label":"Hydraulic Iterations"}
       ,"erosion":{"type":"number","default":.3,"label":"Erosion Rate"}
-      ,"deposition":{"type":"number","default":.7,"label":"Depostion Rate"}
+      ,"deposition":{"type":"number","default":.7,"label":"Deposition Rate"}
       ,"rain":{"type":"number","default":.3,"label":"Rain Amount"}
       ,"evaporation":{"type":"number","default":.7,"label":"Evaporation Rate"}
       ,"cliffs":{"type":"checkbox","default":false,"label":"Cliffs"}
+      ,"sphere":{"type":"checkbox","default":false,"label":"Sphere"}
       }
     }
   ,"torus":
-    {"label":"Optional: Torus objects"
+    {"label":"Torus Object"
     ,"options":
       {"r1":{"type":"number","default":1,"label":"Major radius"}
       ,"r2":{"type":"number","default":0.25,"label":"Minor radius"}

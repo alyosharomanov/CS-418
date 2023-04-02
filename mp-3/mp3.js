@@ -57,7 +57,7 @@ async function setupScene(scene, options) {
     }
 
     if (scene === "terrain") {
-        drawTerrain(shaderPrograms[scene], options["resolution"], options["slices"], options["cliffs"], options["erode"], options["spheroid_it"], options["drain_it"], options["erosion"], options["deposition"], options["rain"], options["evaporation"])
+        drawTerrain(shaderPrograms[scene], options["resolution"], options["slices"], options["cliffs"], options["sphere"], options["erode"], options["spheroid_it"], options["drain_it"], options["erosion"], options["deposition"], options["rain"], options["evaporation"])
     } else if (scene === "torus") {
         drawTorus(shaderPrograms[scene], options["r1"], options["r2"], options["res1"], options["res2"])
     }

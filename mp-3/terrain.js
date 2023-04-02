@@ -142,6 +142,16 @@ function verticalSeparation(vertices, resolution) {
     }
 }
 
+function toSphere(vertices) {
+    for (let i = 0; i < vertices.length / 3; i++) {
+        let latitude = (vertices[i * 3] + 1) * Math.PI / 2;
+        let longitude = (vertices[i * 3 + 1] + 1) * Math.PI;
+        vertices[i * 3] = vertices[i * 3 + 2] + Math.sin(latitude) * Math.cos(longitude)
+        vertices[i * 3 + 1] = vertices[i * 3 + 2] + Math.sin(latitude) * Math.sin(longitude)
+        vertices[i * 3 + 2] = vertices[i * 3 + 2] + Math.cos(latitude)
+    }
+}
+
 /**
  * min z of an array of vertices.
  * @param vertices float array of vertices
@@ -177,6 +187,7 @@ let neighborMap = [[-1, 0], [1, 0], [0, -1], [0, 1]]
  * Generate vertices, normals, and indices for the terrain
  * @param resolution resolution of the terrain
  * @param slices number of horizontal slices
+ * @param sphere is a sphere or not
  * @param erode erosion type
  * @param spheroid_it spheroidal erosion iterations
  * @param drain_it hydraulic erosion iterations
@@ -186,7 +197,7 @@ let neighborMap = [[-1, 0], [1, 0], [0, -1], [0, 1]]
  * @param evaporation hydraulic evaporation rate
  * @return {{indices: Uint32Array, min: number, vertices: Float32Array, max: number, normals: Float32Array}}
  */
-function generateTerrain(resolution, slices, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation) {
+function generateTerrain(resolution, slices, sphere, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation) {
 
     // create vertices with x, y, z
     let vertices = []
@@ -215,6 +226,9 @@ function generateTerrain(resolution, slices, erode, spheroid_it, drain_it, erosi
         hydraulic(vertices, resolution, heightDelta, drain_it, erosion, deposition, rain, evaporation)
     }
     verticalSeparation(vertices, resolution)
+    if (sphere) {
+        toSphere(vertices)
+    }
 
     // create normals
     let normals = Array(vertices.length).fill(0)
@@ -258,6 +272,7 @@ function generateTerrain(resolution, slices, erode, spheroid_it, drain_it, erosi
  * @param resolution resolution of the terrain
  * @param slices number of horizontal slices
  * @param cliffs has cliffs or not
+ * @param sphere is a sphere or not
  * @param erode erosion type
  * @param spheroid_it spheroidal erosion iterations
  * @param drain_it hydraulic erosion iterations
@@ -266,8 +281,8 @@ function generateTerrain(resolution, slices, erode, spheroid_it, drain_it, erosi
  * @param rain hydraulic rain rate
  * @param evaporation hydraulic evaporation rate
  */
-function drawTerrain(shaderProgram, resolution, slices, cliffs, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation) {
-    let terrain = generateTerrain(resolution, slices, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation)
+function drawTerrain(shaderProgram, resolution, slices, cliffs, sphere, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation) {
+    let terrain = generateTerrain(resolution, slices, sphere, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation)
 
     shaderProgram.vertexPosition = gl.getAttribLocation(shaderProgram, "a_vertexPosition")
     shaderProgram.vertexNormal = gl.getAttribLocation(shaderProgram, "a_vertexNormal")
