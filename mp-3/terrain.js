@@ -1,22 +1,23 @@
-function faultingTerrain(vertices, resolution, slices, heightDelta) {
-    let size = vertices.length / 3
+function faultingTerrain(vertices, resolution, heightDelta, slices) {
     for (let i = 0; i < slices; i++) {
-        // construct a random fault plane
-        let fault = glMatrix.vec3.create()
-        glMatrix.vec3.set(fault, Math.random() * 2 - 1, Math.random() * 2 - 1, 0)
-        let random = glMatrix.vec3.random(glMatrix.vec3.create())
+
+        // random fault plane
+        let fault = glMatrix.vec3.fromValues(Math.random() * 2 - 1, Math.random() * 2 - 1, 0)
+        let faultDirection = glMatrix.vec3.random(glMatrix.vec3.create())
 
         // raise and lower vertices
-        for (let j = 0; j < size; j++) {
+        for (let j = 0; j < vertices.length / 3; j++) {
             let vertex = glMatrix.vec3.fromValues(vertices[j * 3], vertices[j * 3 + 1], vertices[j * 3 + 2])
-            let sub = glMatrix.vec3.create()
-            glMatrix.vec3.subtract(sub, vertex, fault)
+            let vertexSubFault = glMatrix.vec3.create()
+            glMatrix.vec3.subtract(vertexSubFault, vertex, fault)
 
-            if (glMatrix.vec3.dot(sub, random) > 0)
+            // lift or raise each side of the fault
+            if (glMatrix.vec3.dot(vertexSubFault, faultDirection) > 0)
                 vertex[2] += heightDelta
             else
                 vertex[2] -= heightDelta
 
+            // push to vertices
             for (let k = 0; k < 3; k++) {
                 vertices[j * 3 + k] = vertex[k]
             }
@@ -25,30 +26,19 @@ function faultingTerrain(vertices, resolution, slices, heightDelta) {
 }
 
 function spheroidal(vertices, resolution, iterations) {
-    let size = vertices.length / 3
-
-    let test = 0
-    for (let i = 0; i < resolution + 1; i++) {
-        for (let j = 0; j < resolution + 1; j++) {
-            test += 1
-        }
-    }
-
-    for (let i = 0; i < iterations; i++) {
-        let tempVertices = Array(size * 3).fill(0)
+    for (let iter = 0; iter < iterations; iter++) {
+        let tempVertices = Array(vertices.length).fill(0)
 
         // iterate all vertices
-        for (let i = 0; i < resolution + 1; i++) {
-            for (let j = 0; j < resolution + 1; j++) {
+        for (let i = 0; i <= resolution; i++) {
+            for (let j = 0; j <= resolution; j++) {
 
                 // get all neighbors
                 let neighbors = []
-                let neighborIndices = [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]]
-                for (let k = 0; k < neighborIndices.length; k++) {
-                    //if (neighborIndices[k][0] >= 0 && neighborIndices[k][0] < resolution + 1 && neighborIndices[k][1] >= 0 && neighborIndices[k][1] < resolution + 1) {
-                    if (neighborIndices[k][0] >= 0 && neighborIndices[k][0] < resolution + 1 && neighborIndices[k][1] >= 0 && neighborIndices[k][1] < resolution + 1) {
-                        let index = neighborIndices[k][0] * (resolution + 1) + neighborIndices[k][1];
-                        neighbors.push(index * 3);
+                for (let k = 0; k < neighborMap.length; k++) {
+                    if (i + neighborMap[k][0] >= 0 && i + neighborMap[k][0] < resolution + 1 && j + neighborMap[k][1] >= 0 && j + neighborMap[k][1] < resolution + 1) {
+                        let neighborIdx = ((i + neighborMap[k][0]) * (resolution + 1) + (j + neighborMap[k][1])) * 3
+                        neighbors.push(neighborIdx);
                     }
                 }
 
@@ -68,125 +58,106 @@ function spheroidal(vertices, resolution, iterations) {
             }
         }
 
-        // update the original vertices
-        for (let j = 0; j < size; j++) {
-            for (let k = 0; k < 3; k++) {
-                vertices[j * 3 + k] = tempVertices[j * 3 + k];
-            }
+        // deep copy to original vertices
+        for (let j = 0; j < vertices.length; j++) {
+            vertices[j] = tempVertices[j];
         }
     }
 }
-
-let neighborMap = [[-1, 0], [1, 0], [0, -1], [0, 1]]
 
 function hydraulic(vertices, resolution, heightDelta, iterations, erosionRate, depositionRate, rainAmount, evaporationRate) {
-    let size = vertices.length / 3
-
-    let min = Number.MAX_VALUE
-    for (let i = 0; i < size; i++) {
-        min = Math.min(min, vertices[i * 3 + 2])
-    }
-
-    let waterMap = new Float32Array(size).fill(0);
-    let sedimentMap = new Float32Array(size).fill(0);
+    let min = getMin(vertices)
+    let water = new Float32Array(vertices.length / 3).fill(0);
+    let sediment = new Float32Array(vertices.length / 3).fill(0);
 
     for (let iter = 0; iter < iterations; iter++) {
-
-        // Add rain
-        for (let i = 0; i < size; i++) {
-            waterMap[i] += rainAmount * heightDelta;
+        // add rain
+        for (let i = 0; i < vertices.length / 3; i++) {
+            water[i] += rainAmount * heightDelta;
         }
 
-        // Calculate flow directions
-        let flowMap = new Float32Array(size * 4).fill(0);
-        for (let i = 1; i < resolution; i++) {
-            for (let j = 1; j < resolution; j++) {
-                let idx = (i * (resolution + 1)) + j // getIdx(i, j, resolution);
+        // calculate flow
+        let flow = new Float32Array((vertices.length / 3) * 4).fill(0);
+        for (let i = 0; i <= resolution; i++) {
+            for (let j = 0; j <= resolution; j++) {
+                let idx = i * (resolution + 1) + j
 
-                for (let k = 0; k < 4; k++) {
-                    let neighborIdx = ((i + neighborMap[k][0]) * (resolution + 1)) + (j + neighborMap[k][1]) // getIdx(i + di, j + dj, resolution);
-
-                    let diffHeight = vertices[idx * 3 + 2] + waterMap[idx] - vertices[neighborIdx * 3 + 2] - waterMap[neighborIdx];
-                    if (diffHeight > 0) {
-                        flowMap[idx * 4 + k] = diffHeight;
+                // check all neighbors
+                for (let k = 0; k < neighborMap.length; k++) {
+                    if (i + neighborMap[k][0] >= 0 && i + neighborMap[k][0] < resolution + 1 && j + neighborMap[k][1] >= 0 && j + neighborMap[k][1] < resolution + 1) {
+                        let neighborIdx = (i + neighborMap[k][0]) * (resolution + 1) + (j + neighborMap[k][1])
+                        let diff = vertices[idx * 3 + 2] + water[idx] - vertices[neighborIdx * 3 + 2] - water[neighborIdx];
+                        if (diff > 0) {
+                            flow[idx * 4 + k] = diff;
+                        }
                     }
                 }
 
-                // Normalize flow
-                let totalFlow = flowMap[idx * 4] + flowMap[idx * 4 + 1] + flowMap[idx * 4 + 2] + flowMap[idx * 4 + 3];
+                // normalize flow
+                let totalFlow = flow[idx * 4] + flow[idx * 4 + 1] + flow[idx * 4 + 2] + flow[idx * 4 + 3];
                 if (totalFlow > 0) {
                     for (let k = 0; k < 4; k++) {
-                        flowMap[idx * 4 + k] /= totalFlow;
+                        flow[idx * 4 + k] /= totalFlow;
                     }
                 }
             }
         }
 
-        // Erosion and deposition
-        for (let i = 1; i < resolution; i++) {
-            for (let j = 1; j < resolution; j++) {
-                let idx = (i * (resolution + 1)) + j // getIdx(i, j, resolution);
+        // calculate erosion and deposition
+        for (let i = 0; i <= resolution; i++) {
+            for (let j = 0; j <= resolution; j++) {
+                let idx = i * (resolution + 1) + j
 
-                // Erosion
-                let erosionAmount = erosionRate * heightDelta * waterMap[idx];
-                let maxErosion = vertices[idx * 3 + 2] - Math.min(vertices[idx * 3 + 2], min);
-                erosionAmount = Math.min(erosionAmount, maxErosion);
-                vertices[idx * 3 + 2] -= erosionAmount;
-                sedimentMap[idx] += erosionAmount;
+                // erosion
+                let erosion = Math.min(erosionRate * heightDelta * water[idx], vertices[idx * 3 + 2] - Math.min(vertices[idx * 3 + 2], min));
+                vertices[idx * 3 + 2] -= erosion;
+                sediment[idx] += erosion;
 
-                // Deposition
-                for (let k = 0; k < 4; k++) {
-                    let neighborIdx = ((i + neighborMap[k][0]) * (resolution + 1)) + (j + neighborMap[k][1]) // getIdx(i + di, j + dj, resolution);
+                // deposition
+                for (let k = 0; k < neighborMap.length; k++) {
+                    if (i + neighborMap[k][0] >= 0 && i + neighborMap[k][0] < resolution + 1 && j + neighborMap[k][1] >= 0 && j + neighborMap[k][1] < resolution + 1) {
+                        let neighborIdx = (i + neighborMap[k][0]) * (resolution + 1) + (j + neighborMap[k][1])
 
-                    let sedimentTransport = depositionRate * heightDelta * flowMap[idx * 4 + k] * sedimentMap[idx];
-                    sedimentMap[idx] -= sedimentTransport;
-                    sedimentMap[neighborIdx] += sedimentTransport;
-
-                    vertices[neighborIdx * 3 + 2] += sedimentTransport;
+                        let deposition = depositionRate * heightDelta * flow[idx * 4 + k] * sediment[idx];
+                        sediment[idx] -= deposition;
+                        sediment[neighborIdx] += deposition;
+                        vertices[neighborIdx * 3 + 2] += deposition;
+                    }
                 }
 
-                // Evaporation
-                waterMap[idx] *= (1 - evaporationRate * heightDelta);
+                // evaporation
+                water[idx] *= 1 - evaporationRate * heightDelta
             }
         }
     }
-
-    // fix edges
-    for (let i = 0; i < size * 3; i++) {
-        if (vertices[i * 3 + 1] === -1.0) {
-            vertices[i * 3 + 2] = vertices[(i + resolution) * 3 + 2]
-        }
-        if (vertices[i * 3] === -1.0) {
-            vertices[i * 3 + 2] = vertices[(i + 1) * 3 + 2]
-        }
-        if (vertices[i * 3] === 1.0) {
-            vertices[i * 3 + 2] = vertices[(i - 1) * 3 + 2]
-        }
-        if (vertices[i * 3 + 1] === 1.0) {
-            vertices[i * 3 + 2] = vertices[(i - resolution) * 3 + 2]
-        }
-    }
-
-    //fix corners
-    vertices[2] = vertices[5] = vertices[3 * resolution + 5]
-    vertices[size * 3 - 1] = vertices[size * 3 - 1 - 3] = vertices[(size * 3 - 1) - (3 * resolution) - 3]
 }
 
-function verticalSeperation(vertices, resolution) {
-    let size = vertices.length / 3
-    let min = Number.MAX_VALUE
-    let max = Number.MIN_VALUE
-    for (let i = 0; i < size; i++) {
-        min = Math.min(min, vertices[i * 3 + 2])
-        max = Math.max(max, vertices[i * 3 + 2])
-    }
-
-    // do vertical separation
+function verticalSeparation(vertices, resolution) {
+    let min = getMin(vertices)
+    let max = getMax(vertices)
     let h = (resolution / 2) / resolution
-    for (let i = 0; i < size; i++) {
+    for (let i = 0; i < vertices.length / 3; i++) {
         vertices[i * 3 + 2] = (vertices[i * 3 + 2] - min) / (max - min) * h - (h / 2)
     }
 }
+
+function getMin(vertices) {
+    let min = Number.MAX_VALUE
+    for (let i = 0; i < vertices.length / 3; i++) {
+        min = Math.min(min, vertices[i * 3 + 2])
+    }
+    return min
+}
+
+function getMax(vertices) {
+    let max = Number.MIN_VALUE
+    for (let i = 0; i < vertices.length / 3; i++) {
+        max = Math.max(max, vertices[i * 3 + 2])
+    }
+    return max
+}
+
+let neighborMap = [[-1, 0], [1, 0], [0, -1], [0, 1]]
 
 /**
  * Generate vertices, normals, and indices for the terrain
@@ -203,15 +174,14 @@ function generateTerrain(resolution, slices, erode, spheroid_it, drain_it, erosi
     // create vertices with x, y, z
     for (let i = 0; i <= resolution; i++) {
         for (let j = 0; j <= resolution; j++) {
-            vertices.push(2 * j / resolution - 1, 2 * i / resolution - 1, 0)
+            vertices.push(2 * (j / resolution) - 1, 2 * (i / resolution) - 1, 0)
         }
     }
-    let size = vertices.length / 3
 
     // create indices for keeping track of the triangles
     for (let i = 0; i < resolution; i++) {
         for (let j = 0; j < resolution; j++) {
-            let k = (i * (resolution + 1)) + j
+            let k = i * (resolution + 1) + j
             indices.push(k, k + 1, k + resolution + 1)
             indices.push(k + 1, k + resolution + 2, k + resolution + 1)
         }
@@ -219,21 +189,13 @@ function generateTerrain(resolution, slices, erode, spheroid_it, drain_it, erosi
 
     // generate terrain
     let heightDelta = Math.min(1 / resolution, .1)
-    faultingTerrain(vertices, resolution, slices, heightDelta)
+    faultingTerrain(vertices, resolution, heightDelta, slices)
     if (erode === "spheroid") {
         spheroidal(vertices, resolution, spheroid_it)
     } else if (erode === "drain") {
         hydraulic(vertices, resolution, heightDelta, drain_it, erosion, deposition, rain, evaporation)
     }
-    verticalSeperation(vertices, resolution)
-
-    // recalculate min and max
-    let min = Number.MAX_VALUE
-    let max = Number.MIN_VALUE
-    for (let i = 0; i < size; i++) {
-        min = Math.min(min, vertices[i * 3 + 2])
-        max = Math.max(max, vertices[i * 3 + 2])
-    }
+    verticalSeparation(vertices, resolution)
 
     // create normals
     normals = Array(vertices.length).fill(0)
@@ -266,7 +228,7 @@ function generateTerrain(resolution, slices, erode, spheroid_it, drain_it, erosi
         vertices: new Float32Array(vertices),
         normals: new Float32Array(normals),
         indices: new Uint32Array(indices),
-        min, max
+        min: getMin(vertices), max: getMax(vertices)
     }
 }
 
