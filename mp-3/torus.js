@@ -36,7 +36,7 @@ function generateTorus(r1, r2, res1, res2) {
 
         for (let j = 0; j < res1; ++j) {
             indices.push(v1 + j, v1 + j + 1, v2 + j)
-            indices.push(v2 + j, v1 +j + 1, v2 + j + 1)
+            indices.push(v2 + j, v1 + j + 1, v2 + j + 1)
         }
     }
 
@@ -80,6 +80,7 @@ function drawTorus(shaderProgram, r1, r2, res1, res2) {
     let rotation = 0
 
     frame = requestAnimationFrame(render)
+
     function render() {
         if (current_scene !== "torus") {
             console.log("Dropped frames in torus.")
