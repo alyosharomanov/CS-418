@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 uniform vec3 u_ambientLightColor;
 uniform vec3 u_specularLightColor;
@@ -12,14 +12,13 @@ varying vec3 v_color;
 
 // from http://learnwebgl.brown37.net/09_lights/lights_specular.html
 void main(void) {
-    float shininess = u_shininess;
     vec3 diffuseLightColor = v_color;
+    float shininess = u_shininess;
 
     float slope = abs(dot(v_normal, vec3(0.0, 1.0, 0.0)));
-    if (slope < .5 && u_cliff) {
-        vec3 cliffColor = vec3(0.4, 0.3, 0.2);
+    if (slope < 0.5 && u_cliff) {
+        diffuseLightColor = vec3(0.4, 0.3, 0.2);
         shininess = u_shininess * 5.0;
-        diffuseLightColor = cliffColor;
     }
 
     vec3 lightVector = normalize(u_lightPosition - v_vertex);

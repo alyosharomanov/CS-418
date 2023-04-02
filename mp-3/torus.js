@@ -4,7 +4,7 @@
  * @param r2 minor radius
  * @param res1 number of rings
  * @param res2 points per ring
- * @return {vertices, normals, indices}
+ * @return {{indices: Uint16Array, vertices: Float32Array, normals: Float32Array}}
  */
 function generateTorus(r1, r2, res1, res2) {
 
@@ -43,7 +43,7 @@ function generateTorus(r1, r2, res1, res2) {
     return {
         vertices: new Float32Array(vertices),
         normals: new Float32Array(normals),
-        indices: new Uint16Array(indices),
+        indices: new Uint32Array(indices),
     }
 }
 
@@ -100,7 +100,7 @@ function drawTorus(shaderProgram, r1, r2, res1, res2) {
 
         gl.uniformMatrix4fv(shaderProgram.modelViewMatrix, false, modelViewMatrix)
         gl.uniformMatrix4fv(shaderProgram.projectionMatrix, false, projectionMatrix)
-        gl.drawElements(gl.TRIANGLES, torus.indices.length, gl.UNSIGNED_SHORT, 0)
+        gl.drawElements(gl.TRIANGLES, torus.indices.length, gl.UNSIGNED_INT, 0)
 
         frame = requestAnimationFrame(render)
     }
