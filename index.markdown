@@ -3,18 +3,8 @@
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
 layout: home
+title: "CS 418: Interactive Computer Graphics"
 ---
-
-# CS 418: Interactive Computer Graphics
-
-## [Warmup 1: Text to PNG]({{ site.url }}{{ site.baseurl }}/warmup-1)
-This programming assignment’s goal is to making sure you are ready for the non-real-time MPs that follow.
-
-## [MP 1: Rasterizer and Compositor]({{ site.url }}{{ site.baseurl }}/mp-1)
-In this programming assignment you will implement the key parts of the fixed functionality of a 2020s-era GPU.
-
-## [Warmup 2: Warmup: HTML, Javascript, and WebGL]({{ site.url }}{{ site.baseurl }}/warmup-2)
-This assignment is really more about making sure you are ready for the WebGL homeworks that follow.
 
 ## [MP 2: Dancing Logo]({{ site.url }}{{ site.baseurl }}/mp-2)
 You will submit a webpage that has:
