@@ -26,129 +26,12 @@ function faultingTerrain(vertices, resolution, heightDelta, slices) {
     }
 }
 
-function spheroidal(vertices, resolution, iterations) {
-    for (let iter = 0; iter < iterations; iter++) {
-        let tempVertices = Array(vertices.length).fill(0)
-
-        // iterate all vertices
-        for (let i = 0; i < resolution + 1; i++) {
-            for (let j = 0; j < resolution + 1; j++) {
-
-                // get all neighbors
-                let neighbors = []
-                for (let k = 0; k < neighborMap.length; k++) {
-                    if (i + neighborMap[k][0] >= 0 && i + neighborMap[k][0] < resolution + 1 && j + neighborMap[k][1] >= 0 && j + neighborMap[k][1] < resolution + 1) {
-                        let neighborIdx = ((i + neighborMap[k][0]) * (resolution + 1) + (j + neighborMap[k][1])) * 3
-                        neighbors.push(neighborIdx)
-                    }
-                }
-
-                // calculate the average position of neighbors
-                let average = [0, 0, 0]
-                for (let k = 0; k < neighbors.length; k++) {
-                    for (let l = 0; l < 3; l++) {
-                        average[l] += vertices[neighbors[k] + l] / neighbors.length
-                    }
-                }
-
-                // move the vertex part-way toward the average position of its neighbors
-                for (let k = 0; k < 3; k++) {
-                    let idx = i * (resolution + 1) + j
-                    tempVertices[idx * 3 + k] = (average[k] + vertices[idx * 3 + k]) * 0.5
-                }
-            }
-        }
-
-        // deep copy to original vertices
-        for (let j = 0; j < vertices.length; j++) {
-            vertices[j] = tempVertices[j]
-        }
-    }
-}
-
-function hydraulic(vertices, resolution, heightDelta, iterations, erosionRate, depositionRate, rainAmount, evaporationRate) {
-    let min = getMin(vertices)
-    let water = new Float32Array(vertices.length / 3).fill(0)
-    let sediment = new Float32Array(vertices.length / 3).fill(0)
-
-    for (let iter = 0; iter < iterations; iter++) {
-        // add rain
-        for (let i = 0; i < vertices.length / 3; i++) {
-            water[i] += rainAmount * heightDelta
-        }
-
-        // calculate flow
-        let flow = new Float32Array((vertices.length / 3) * 4).fill(0)
-        for (let i = 0; i < resolution + 1; i++) {
-            for (let j = 0; j < resolution + 1; j++) {
-                let idx = i * (resolution + 1) + j
-
-                // check all neighbors
-                for (let k = 0; k < neighborMap.length; k++) {
-                    if (i + neighborMap[k][0] >= 0 && i + neighborMap[k][0] < resolution + 1 && j + neighborMap[k][1] >= 0 && j + neighborMap[k][1] < resolution + 1) {
-                        let neighborIdx = (i + neighborMap[k][0]) * (resolution + 1) + (j + neighborMap[k][1])
-                        let diff = vertices[idx * 3 + 2] + water[idx] - vertices[neighborIdx * 3 + 2] - water[neighborIdx]
-                        if (diff > 0) {
-                            flow[idx * 4 + k] = diff
-                        }
-                    }
-                }
-
-                // normalize flow
-                let totalFlow = flow[idx * 4] + flow[idx * 4 + 1] + flow[idx * 4 + 2] + flow[idx * 4 + 3]
-                if (totalFlow > 0) {
-                    for (let k = 0; k < 4; k++) {
-                        flow[idx * 4 + k] /= totalFlow
-                    }
-                }
-            }
-        }
-
-        // calculate erosion and deposition
-        for (let i = 0; i < resolution + 1; i++) {
-            for (let j = 0; j < resolution + 1; j++) {
-                let idx = i * (resolution + 1) + j
-
-                // erosion
-                let erosion = Math.min(erosionRate * heightDelta * water[idx], vertices[idx * 3 + 2] - Math.min(vertices[idx * 3 + 2], min))
-                vertices[idx * 3 + 2] -= erosion
-                sediment[idx] += erosion
-
-                // deposition
-                for (let k = 0; k < neighborMap.length; k++) {
-                    if (i + neighborMap[k][0] >= 0 && i + neighborMap[k][0] < resolution + 1 && j + neighborMap[k][1] >= 0 && j + neighborMap[k][1] < resolution + 1) {
-                        let neighborIdx = (i + neighborMap[k][0]) * (resolution + 1) + (j + neighborMap[k][1])
-
-                        let deposition = depositionRate * heightDelta * flow[idx * 4 + k] * sediment[idx]
-                        sediment[idx] -= deposition
-                        sediment[neighborIdx] += deposition
-                        vertices[neighborIdx * 3 + 2] += deposition
-                    }
-                }
-
-                // evaporation
-                water[idx] *= 1 - evaporationRate * heightDelta
-            }
-        }
-    }
-}
-
 function verticalSeparation(vertices, resolution) {
     let min = getMin(vertices)
     let max = getMax(vertices)
     let h = (resolution / 2) / resolution
     for (let i = 0; i < vertices.length / 3; i++) {
         vertices[i * 3 + 2] = (vertices[i * 3 + 2] - min) / (max - min) * h - (h / 2)
-    }
-}
-
-function toSphere(vertices) {
-    for (let i = 0; i < vertices.length / 3; i++) {
-        let latitude = (vertices[i * 3] + 1) * Math.PI / 2;
-        let longitude = (vertices[i * 3 + 1] + 1) * Math.PI;
-        vertices[i * 3] = vertices[i * 3 + 2] + Math.sin(latitude) * Math.cos(longitude)
-        vertices[i * 3 + 1] = vertices[i * 3 + 2] + Math.sin(latitude) * Math.sin(longitude)
-        vertices[i * 3 + 2] = vertices[i * 3 + 2] + Math.cos(latitude)
     }
 }
 
@@ -179,31 +62,18 @@ function getMax(vertices) {
 }
 
 /**
- * map of neighbors from [0, 0]
- */
-let neighborMap = [[-1, 0], [1, 0], [0, -1], [0, 1]]
-
-/**
  * Generate vertices, normals, and indices for the terrain
  * @param resolution resolution of the terrain
  * @param slices number of horizontal slices
- * @param sphere is a sphere or not
- * @param erode erosion type
- * @param spheroid_it spheroidal erosion iterations
- * @param drain_it hydraulic erosion iterations
- * @param erosion hydraulic erosion rate
- * @param deposition hydraulic deposition rate
- * @param rain hydraulic rain rate
- * @param evaporation hydraulic evaporation rate
- * @return {{indices: Uint32Array, min: number, vertices: Float32Array, max: number, normals: Float32Array}}
+ * @return {{indices: Uint32Array, vertices: Float32Array, normals: Float32Array}}
  */
-function generateTerrain(resolution, slices, sphere, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation) {
+function generateTerrain(resolution, slices) {
 
     // create vertices with x, y, z
     let vertices = []
     for (let i = 0; i < resolution + 1; i++) {
         for (let j = 0; j < resolution + 1; j++) {
-            vertices.push(j, i, 0)
+            vertices.push(2 * (j / resolution) - 1, 2 * (i / resolution) - 1, 0)
         }
     }
 
@@ -220,15 +90,7 @@ function generateTerrain(resolution, slices, sphere, erode, spheroid_it, drain_i
     // generate terrain
     let heightDelta = Math.min(1 / resolution, .1)
     faultingTerrain(vertices, resolution, heightDelta, slices)
-    if (erode === "spheroid") {
-        spheroidal(vertices, resolution, spheroid_it)
-    } else if (erode === "drain") {
-        hydraulic(vertices, resolution, heightDelta, drain_it, erosion, deposition, rain, evaporation)
-    }
     verticalSeparation(vertices, resolution)
-    if (sphere) {
-        toSphere(vertices)
-    }
 
     // create normals
     let normals = Array(vertices.length).fill(0)
@@ -260,9 +122,7 @@ function generateTerrain(resolution, slices, sphere, erode, spheroid_it, drain_i
     return {
         vertices: new Float32Array(vertices),
         normals: new Float32Array(normals),
-        indices: new Uint32Array(indices),
-        min: getMin(vertices),
-        max: getMax(vertices)
+        indices: new Uint32Array(indices)
     }
 }
 
@@ -271,30 +131,19 @@ function generateTerrain(resolution, slices, sphere, erode, spheroid_it, drain_i
  * @param shaderProgram shader program for drawing terrain
  * @param resolution resolution of the terrain
  * @param slices number of horizontal slices
- * @param cliffs has cliffs or not
- * @param sphere is a sphere or not
- * @param erode erosion type
- * @param spheroid_it spheroidal erosion iterations
- * @param drain_it hydraulic erosion iterations
- * @param erosion hydraulic erosion rate
- * @param deposition hydraulic deposition rate
- * @param rain hydraulic rain rate
- * @param evaporation hydraulic evaporation rate
  */
-function drawTerrain(shaderProgram, resolution, slices, cliffs, sphere, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation) {
-    let terrain = generateTerrain(resolution, slices, sphere, erode, spheroid_it, drain_it, erosion, deposition, rain, evaporation)
+function drawTerrain(shaderProgram, resolution, slices) {
+    let terrain = generateTerrain(resolution, slices)
 
     shaderProgram.vertexPosition = gl.getAttribLocation(shaderProgram, "a_vertexPosition")
     shaderProgram.vertexNormal = gl.getAttribLocation(shaderProgram, "a_vertexNormal")
     shaderProgram.modelViewMatrix = gl.getUniformLocation(shaderProgram, "u_modelViewMatrix")
     shaderProgram.projectionMatrix = gl.getUniformLocation(shaderProgram, "u_projectionMatrix")
     shaderProgram.normalMatrix = gl.getUniformLocation(shaderProgram, "u_normalMatrix")
-    gl.uniform2fv(gl.getUniformLocation(shaderProgram, "u_HeightRange"), [terrain.min, terrain.max])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_ambientLightColor'), [1, 1, 1])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_specularLightColor'), [1, 1, 1])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_lightPosition'), [2, 2, 2])
     gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_shininess'), 20)
-    gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_cliff'), cliffs)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
     gl.bufferData(gl.ARRAY_BUFFER, terrain.vertices, gl.STATIC_DRAW)
@@ -317,16 +166,12 @@ function drawTerrain(shaderProgram, resolution, slices, cliffs, sphere, erode, s
     frame = requestAnimationFrame(render)
 
     function render() {
-        if (current_scene !== "terrain") {
-            console.log("Dropped frames in terrain.")
-            return
-        }
         rotation += 0.001
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-        glMatrix.mat4.perspective(projectionMatrix, 5, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 100)
-        let eye = glMatrix.vec3.fromValues(2 * Math.cos(rotation), 2 * Math.sin(rotation), 50)
-        glMatrix.mat4.lookAt(modelViewMatrix, eye, [resolution/2, resolution/2, 0], [0, 0, 1])
+        glMatrix.mat4.perspective(projectionMatrix, 1, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 100)
+        let eye = glMatrix.vec3.fromValues(2 * Math.cos(rotation), 2 * Math.sin(rotation), 2)
+        glMatrix.mat4.lookAt(modelViewMatrix, eye, [0, 0, 0], [0, 0, 1])
 
         glMatrix.mat3.fromMat4(normalMatrix, modelViewMatrix)
         glMatrix.mat3.transpose(normalMatrix, normalMatrix)

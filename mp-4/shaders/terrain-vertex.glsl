@@ -5,7 +5,6 @@ attribute vec3 a_vertexNormal;
 uniform mat4 u_modelViewMatrix;
 uniform mat4 u_projectionMatrix;
 uniform mat3 u_normalMatrix;
-uniform vec2 u_HeightRange;
 
 varying vec3 v_vertex;
 varying vec3 v_normal;
@@ -15,17 +14,7 @@ varying vec3 v_color;
 void main(void) {
     v_vertex = (u_modelViewMatrix * vec4(a_vertexPosition, 1.0)).xyz;
     v_normal = normalize(u_normalMatrix * a_vertexNormal);
-
-    vec3 color;
-    float height_percentage = (a_vertexPosition.z - u_HeightRange.x) / (u_HeightRange.y - u_HeightRange.x);
-    if (height_percentage < 0.333) {
-        color = mix(vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0), height_percentage * 3.0);
-    } else if (height_percentage < 0.666) {
-        color = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), (height_percentage - 0.333) * 3.0);
-    } else {
-        color = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (height_percentage - 0.666) * 3.0);
-    }
-    v_color = color;
+    v_color = vec3(1.0, 1.0, 1.0);
 
     gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(a_vertexPosition, 1.0);
 }
