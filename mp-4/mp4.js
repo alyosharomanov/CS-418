@@ -43,7 +43,7 @@ async function setup() {
  * Generate geometry, render the scene
  */
 function setupScene(shaderProgram) {
-    drawTerrain(shaderProgram, 100, 100)
+    drawTerrain(shaderProgram, 100, 100, 'texture.png')
 }
 
 window.addEventListener('load', setup)
