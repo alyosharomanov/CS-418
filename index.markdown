@@ -25,9 +25,6 @@ You will submit a webpage that has:
 - Keyboard response to move the camera
 - One or more texture-mapped objects
 
-## [MP 4.5: Raytracer]({{ site.url }}{{ site.baseurl }}/mp-4.5)
-This programming assignment created 3D imagery using ray tracing. In most other respects, its logistics are similar to the rasterizer assignment: you code in any language you want and your program reads a text file and produces an image file.
-
 ## [MP 5: Particle Effects]({{ site.url }}{{ site.baseurl }}/mp-5)
 You will submit one or more webpages. Each has:
 - One full-screen canvas
