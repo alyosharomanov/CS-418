@@ -193,6 +193,12 @@ document.addEventListener('keydown', (event) => {
     if (event.key.toLowerCase() === 'f') {
         states.fog = !states.fog;
     }
+    if (event.key.toLowerCase() === 'h') {
+        let textbox = document.getElementById("description")
+        if (textbox) {
+            textbox.style.display = 'none';
+        }
+    }
 });
 
 document.addEventListener('keyup', (event) => {

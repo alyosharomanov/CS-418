@@ -20,11 +20,29 @@
             height: 100vh;
             line-height: 0;
         }
+
+        #description {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            border: 1px solid white;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
 <div class="display">
     <canvas width="500" height="500"></canvas>
+    <div id="description">
+        <span>
+            <p>WASD to move.</p>
+            <p>Arrow keys for camera.</p>
+            <p>F to toggle fog.</p>
+            <p>H to hide this box.</p>
+        </span>
+    </div>
 </div>
 </body>
 </html>
