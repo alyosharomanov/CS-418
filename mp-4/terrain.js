@@ -103,41 +103,7 @@ function getMax(vertices) {
     return max
 }
 
-/**
- * Generate vertices, normals, and indices for the terrain
- * @param resolution resolution of the terrain
- * @param slices number of horizontal slices
- * @return {{indices: Uint32Array, vertices: Float32Array, normals: Float32Array, coordinates: Float32Array}}
- */
-function generateTerrain(resolution, slices) {
-
-    // create vertices with x, y, z
-    let vertices = []
-    let coordinates = []
-    for (let i = 0; i < resolution + 1; i++) {
-        for (let j = 0; j < resolution + 1; j++) {
-            vertices.push(2 * (j / resolution) - 1, 2 * (i / resolution) - 1, 0)
-            coordinates.push(-j / resolution, i / resolution)
-        }
-    }
-
-    // create indices for keeping track of the triangles
-    let indices = []
-    for (let i = 0; i < resolution; i++) {
-        for (let j = 0; j < resolution; j++) {
-            let k = i * (resolution + 1) + j
-            indices.push(k, k + 1, k + resolution + 1)
-            indices.push(k + 1, k + resolution + 2, k + resolution + 1)
-        }
-    }
-
-    // generate terrain
-    let heightDelta = Math.min(1 / resolution, .1)
-    faultingTerrain(vertices, resolution, heightDelta, slices)
-    spheroidal(vertices, resolution, 5)
-    verticalSeparation(vertices, resolution)
-
-    // create normals
+function generateNormals(vertices, indices) {
     let normals = Array(vertices.length).fill(0)
     for (let i = 0; i < indices.length; i += 3) {
         let triangle = []
@@ -163,17 +129,56 @@ function generateTerrain(resolution, slices) {
             }
         }
     }
+    return normals
+}
+
+/**
+ * Generate vertices, normals, and indices for the terrain
+ * @param resolution resolution of the terrain
+ * @param slices number of horizontal slices
+ * @return {{indices: Uint32Array, vertices: Float32Array, normals: Float32Array, texCoords: Float32Array}}
+ */
+function generateTerrain(resolution, slices) {
+    // create vertices with x, y, z
+    let vertices = []
+    let texCoords = []
+    for (let i = 0; i < resolution + 1; i++) {
+        for (let j = 0; j < resolution + 1; j++) {
+            vertices.push(2 * (j / resolution) - 1, 2 * (i / resolution) - 1, 0)
+            texCoords.push(j / resolution, i / resolution)
+        }
+    }
+
+    // create indices for keeping track of the triangles
+    let indices = []
+    for (let i = 0; i < resolution; i++) {
+        for (let j = 0; j < resolution; j++) {
+            let k = i * (resolution + 1) + j
+            indices.push(k, k + 1, k + resolution + 1)
+            indices.push(k + 1, k + resolution + 2, k + resolution + 1)
+        }
+    }
+
+    // generate terrain
+    let heightDelta = Math.min(1 / resolution, .1)
+    faultingTerrain(vertices, resolution, heightDelta, slices)
+    spheroidal(vertices, resolution, 5)
+    verticalSeparation(vertices, resolution)
+
+    // create normals
+    let normals = generateNormals(vertices, indices);
 
     return {
         vertices: new Float32Array(vertices),
         normals: new Float32Array(normals),
         indices: new Uint32Array(indices),
-        coordinates: new Float32Array(coordinates)
+        texCoords: new Float32Array(texCoords)
     }
 }
 
 /**
- * calculates camera vectors, from https://www.tomdalling.com/blog/modern-opengl/04-cameras-vectors-and-input/
+ * calculates camera vectors
+ * from https://www.tomdalling.com/blog/modern-opengl/04-cameras-vectors-and-input/
  * @param camera the current camera position
  * @return {{forward: vec3, right: vec3, up: vec3}}
  */
@@ -186,56 +191,45 @@ function calculateCameraVectors(camera) {
     return {forward, right, up};
 }
 
-document.addEventListener('keydown', (event) => {
-    if (states.hasOwnProperty(event.key.toLowerCase())) {
-        states[event.key.toLowerCase()] = true;
-    }
-    if (event.key.toLowerCase() === 'f') {
-        states.fog = !states.fog;
-    }
-    if (event.key.toLowerCase() === 'h') {
-        let textbox = document.getElementById("description")
-        if (textbox) {
-            textbox.style.display = 'none';
-        }
-    }
-});
-
-document.addEventListener('keyup', (event) => {
-    if (states.hasOwnProperty(event.key.toLowerCase())) {
-        states[event.key.toLowerCase()] = false;
-    }
-});
-
-let states = {
-    w: false,
-    s: false,
-    a: false,
-    d: false,
-    arrowup: false,
-    arrowdown: false,
-    arrowleft: false,
-    arrowright: false,
-    fog: true,
-};
-
 /**
  * Draw terrain
  * @param shaderProgram shader program for drawing terrain
  * @param resolution resolution of the terrain
  * @param slices number of horizontal slices
- * @param texturePath file path to the texture
+ * @param terrainTexturePath file path to the texture
+ * @param model model to draw on the terrain
+ * @param modelTexturePath file path to the model texture
  */
-function drawTerrain(shaderProgram, resolution, slices, texturePath) {
+function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, model, modelTexturePath) {
     let terrain = generateTerrain(resolution, slices)
 
-    let image = new Image();
-    image.onload = function () {
+    let terrainTextureSlot = 0
+    let terrainTexture = new Image();
+    terrainTexture.src = terrainTexturePath
+    terrainTexture.onload = function () {
+        gl.activeTexture(gl.TEXTURE0 + terrainTextureSlot);
         gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, terrainTexture);
         gl.generateMipmap(gl.TEXTURE_2D);
-    };
-    image.src = texturePath;
+    }
+    terrainTexture.onerror = function () {
+        console.log("Error loading terrain texture")
+        terrainTextureSlot = undefined
+    }
+
+    let modelTextureSlot = 1
+    let modelTexture = new Image();
+    modelTexture.src = modelTexturePath;
+    modelTexture.onload = function () {
+        gl.activeTexture(gl.TEXTURE0 + modelTextureSlot);
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, modelTexture);
+        gl.generateMipmap(gl.TEXTURE_2D);
+    }
+    modelTexture.onerror = function () {
+        console.log("Error loading model texture, attempting to use terrain texture")
+        modelTextureSlot = terrainTextureSlot
+    }
 
     shaderProgram.vertexPosition = gl.getAttribLocation(shaderProgram, "a_vertexPosition")
     shaderProgram.vertexNormal = gl.getAttribLocation(shaderProgram, "a_vertexNormal")
@@ -244,101 +238,143 @@ function drawTerrain(shaderProgram, resolution, slices, texturePath) {
     shaderProgram.projectionMatrix = gl.getUniformLocation(shaderProgram, "u_projectionMatrix")
     shaderProgram.normalMatrix = gl.getUniformLocation(shaderProgram, "u_normalMatrix")
     shaderProgram.cameraPosition = gl.getUniformLocation(shaderProgram, "u_cameraPosition")
+    shaderProgram.image = gl.getUniformLocation(shaderProgram, "u_image")
     shaderProgram.fog = gl.getUniformLocation(shaderProgram, "u_fog")
-    gl.uniform1i(gl.getUniformLocation(shaderProgram, "u_image"), 0);
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_ambientLightColor'), [1, 1, 1])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_specularLightColor'), [1, 1, 1])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_fogColor'), [0.075, 0.16, 0.292])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_lightPosition'), [2, 2, 2])
     gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_shininess'), 20)
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-    gl.bufferData(gl.ARRAY_BUFFER, terrain.vertices, gl.STATIC_DRAW)
-    gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(shaderProgram.vertexPosition)
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-    gl.bufferData(gl.ARRAY_BUFFER, terrain.normals, gl.STATIC_DRAW)
-    gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(shaderProgram.vertexNormal)
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-    gl.bufferData(gl.ARRAY_BUFFER, terrain.coordinates, gl.STATIC_DRAW)
-    gl.vertexAttribPointer(shaderProgram.vertexCoordinates, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(shaderProgram.vertexCoordinates)
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, terrain.indices, gl.STATIC_DRAW)
-
     let projectionMatrix = glMatrix.mat4.create()
     let modelViewMatrix = glMatrix.mat4.create()
-    let normalMatrix = glMatrix.mat3.create()
-
     let camera = {
-        position: glMatrix.vec3.fromValues(0, 2, 1),
+        position: glMatrix.vec3.fromValues(0, -1.75, 1.25),
         pitch: 1.2 * Math.PI,
-        yaw: .5 * Math.PI,
+        yaw: 1.5 * Math.PI,
         moveSpeed: 0.005,
         maxPitchUP: 1.5 * Math.PI - 0.01,
         maxPitchDown: .5 * Math.PI + 0.01,
     };
-    frame = requestAnimationFrame(render)
+
+    requestAnimationFrame(render)
 
     function render() {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
         let cameraVectors = calculateCameraVectors(camera);
-        if (states.w) {
+        if (keysBeingPressed.w) {
             glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.forward, camera.moveSpeed);
         }
-        if (states.s) {
+        if (keysBeingPressed.s) {
             glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.forward, -camera.moveSpeed);
         }
-        if (states.a) {
-            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.right, -camera.moveSpeed);
-        }
-        if (states.d) {
+        if (keysBeingPressed.d) {
             glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.right, camera.moveSpeed);
         }
-        if (states.arrowup) {
+        if (keysBeingPressed.a) {
+            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.right, -camera.moveSpeed);
+        }
+        if (keysBeingPressed.arrowup) {
             camera.pitch -= camera.moveSpeed / 2;
             if (camera.pitch <= camera.maxPitchDown) {
                 camera.pitch = camera.maxPitchDown
             }
         }
-        if (states.arrowdown) {
+        if (keysBeingPressed.arrowdown) {
             camera.pitch += camera.moveSpeed / 2;
             if (camera.pitch >= camera.maxPitchUP) {
                 camera.pitch = camera.maxPitchUP
             }
         }
-        if (states.arrowleft) {
-            camera.yaw += camera.moveSpeed / 2;
-        }
-        if (states.arrowright) {
+        if (keysBeingPressed.arrowright) {
             camera.yaw -= camera.moveSpeed / 2;
         }
-        gl.uniform1f(shaderProgram.fog, states.fog)
+        if (keysBeingPressed.arrowleft) {
+            camera.yaw += camera.moveSpeed / 2;
+        }
+        gl.uniform1f(shaderProgram.fog, keysBeingPressed.fog)
 
-        // set up camera
+        // set the camera
         glMatrix.mat4.perspective(projectionMatrix, 1, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 100)
-        gl.uniform3fv(shaderProgram.cameraPosition, camera.position)
         let target = glMatrix.vec3.create();
-        glMatrix.vec3.add(target, camera.position, cameraVectors.forward);
         cameraVectors = calculateCameraVectors(camera);
+        glMatrix.vec3.add(target, camera.position, cameraVectors.forward);
         glMatrix.mat4.lookAt(modelViewMatrix, camera.position, target, cameraVectors.up);
+        gl.uniform3fv(shaderProgram.cameraPosition, camera.position)
 
-        // set up normal matrix
-        glMatrix.mat3.fromMat4(normalMatrix, modelViewMatrix)
-        glMatrix.mat3.transpose(normalMatrix, normalMatrix)
-        glMatrix.mat3.invert(normalMatrix, normalMatrix)
+        /**
+         * Draw the geometry
+         * @param shaderProgram the shader program to use
+         * @param object the object to draw
+         * @param modelViewMatrix the model view matrix
+         * @param projectionMatrix the projection matrix
+         * @param slot the texture slot to use
+         */
+        function drawGeometry(shaderProgram, object, modelViewMatrix, projectionMatrix, slot) {
+            // bind vertex buffer
+            if (object.vertices.length !== 0) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+                gl.bufferData(gl.ARRAY_BUFFER, object.vertices, gl.STATIC_DRAW)
+                gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0)
+                gl.enableVertexAttribArray(shaderProgram.vertexPosition)
+            } else {
+                console.log("No vertex data found for object, skipping")
+                return
+            }
 
-        // pass on uniforms
-        gl.uniformMatrix4fv(shaderProgram.modelViewMatrix, false, modelViewMatrix)
-        gl.uniformMatrix3fv(shaderProgram.normalMatrix, false, normalMatrix)
-        gl.uniformMatrix4fv(shaderProgram.projectionMatrix, false, projectionMatrix)
-        gl.drawElements(gl.TRIANGLES, terrain.indices.length, gl.UNSIGNED_INT, 0)
+            // bind normal buffer
+            if (object.normals.length !== 0) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+                gl.bufferData(gl.ARRAY_BUFFER, object.normals, gl.STATIC_DRAW)
+                gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0)
+                gl.enableVertexAttribArray(shaderProgram.vertexNormal)
+            } else {
+                gl.disableVertexAttribArray(shaderProgram.vertexNormal)
+            }
 
-        frame = requestAnimationFrame(render)
+            // bind texture coordinates
+            if (object.texCoords.length !== 0) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+                gl.bufferData(gl.ARRAY_BUFFER, object.texCoords, gl.STATIC_DRAW)
+                gl.vertexAttribPointer(shaderProgram.vertexCoordinates, 2, gl.FLOAT, false, 0, 0)
+                gl.enableVertexAttribArray(shaderProgram.vertexCoordinates)
+
+                if (slot !== undefined) {
+                    gl.uniform1i(shaderProgram.image, slot)
+                }
+            } else {
+                gl.disableVertexAttribArray(shaderProgram.vertexCoordinates)
+            }
+
+            // bind index buffer
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, object.indices, gl.STATIC_DRAW)
+
+            // calculate normal matrix from model view matrix
+            let normalMatrix = glMatrix.mat3.create()
+            glMatrix.mat3.normalFromMat4(normalMatrix, modelViewMatrix)
+            glMatrix.mat3.invert(normalMatrix, normalMatrix)
+            glMatrix.mat3.transpose(normalMatrix, normalMatrix)
+
+            // set uniforms and draw geometry
+            gl.uniformMatrix4fv(shaderProgram.modelViewMatrix, false, modelViewMatrix)
+            gl.uniformMatrix3fv(shaderProgram.normalMatrix, false, normalMatrix)
+            gl.uniformMatrix4fv(shaderProgram.projectionMatrix, false, projectionMatrix)
+            gl.drawElements(gl.TRIANGLES, object.indices.length, gl.UNSIGNED_INT, 0)
+        }
+
+        // draw terrain
+        drawGeometry(shaderProgram, terrain, modelViewMatrix, projectionMatrix, terrainTextureSlot);
+
+        //draw model
+        let modelViewMatrix2 = glMatrix.mat4.clone(modelViewMatrix);
+        let scale = 0.25
+        glMatrix.mat4.scale(modelViewMatrix2, modelViewMatrix2, [scale, scale, scale]);
+        glMatrix.mat4.translate(modelViewMatrix2, modelViewMatrix2, [0, 0, 1 + scale + terrain.vertices[(resolution + 1) * (resolution / 2) * 3 + 2]]);
+        drawGeometry(shaderProgram, model, modelViewMatrix2, projectionMatrix, modelTextureSlot);
+
+        // request next frame
+        requestAnimationFrame(render)
     }
 }

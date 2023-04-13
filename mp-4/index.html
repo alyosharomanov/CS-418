@@ -15,10 +15,21 @@
             display: flex;
         }
 
+        button {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+        }
+
         .display {
             flex-grow: 1;
             height: 100vh;
             line-height: 0;
+        }
+
+        a, a:visited {
+            color: inherit;
+            text-decoration: underline;
         }
 
         #description {
@@ -36,11 +47,19 @@
 <div class="display">
     <canvas width="500" height="500"></canvas>
     <div id="description">
+        <div style="padding-bottom: 10px;">
+            <button class="refresh-button" onclick="location.reload()">Refresh Page</button>
+        </div>
+        <div>
+            <button class="refresh-button" onclick="window.location.href='.'">Load Default</button>
+            <button class="refresh-button" onclick="window.location.href='.#suzanne.obj'">Load Suzanne</button>
+            <button class="refresh-button" onclick="window.location.href='.#cow.obj'">Load Cow</button>
+        </div>
         <span>
-            <p>WASD to move.</p>
-            <p>Arrow keys for camera.</p>
-            <p>F to toggle fog.</p>
-            <p>H to hide this box.</p>
+            <p>Use WASD keys to move camera.</p>
+            <p>Use Arrow keys to rotate camera.</p>
+            <p>Press F to toggle the fog on and off.</p>
+            <p>Press H to hide this box.</p>
         </span>
     </div>
 </div>
