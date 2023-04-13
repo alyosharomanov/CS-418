@@ -81,12 +81,12 @@ function fillScreen() {
     canvas.style.width = ''
     canvas.style.height = ''
     if (window.gl) {
-        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.DEPTH_TEST)
         gl.viewport(0, 0, canvas.width, canvas.height)
         gl.clearColor(0.075, 0.16, 0.292, 1)
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
     }
 }
 
@@ -157,24 +157,24 @@ function compileAndLinkGLSL(vs_source, fs_source) {
  * @return {{indices: Uint32Array, vertices: Float32Array, normals: Float32Array, texCoords: Float32Array}}
  */
 function parseObj(objText) {
-    let vertices = [];
-    let texCoords = [];
-    let normals = [];
-    let indices = [];
-    let normal_indices = [];
+    let vertices = []
+    let texCoords = []
+    let normals = []
+    let indices = []
+    let normal_indices = []
 
     // parse obj file
     for (const line of objText.split('\n').map(line => line.trim().split(/\s+/))) {
         if (line[0] === 'v') { // vertex
-            vertices.push(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]));
+            vertices.push(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]))
         } else if (line[0] === 'vn') { // vertex normal
-            normals.push(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]));
+            normals.push(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]))
         } else if (line[0] === 'vt') { // texture coordinate
-            texCoords.push(parseFloat(line[1]), parseFloat(line[2]));
+            texCoords.push(parseFloat(line[1]), parseFloat(line[2]))
         } else if (line[0] === 'f') { // face
-            let faceIndices = [];
+            let faceIndices = []
             for (let i = 1; i < line.length; i++) {
-                const indices = line[i].split('/').map(x => parseInt(x, 10));
+                const indices = line[i].split('/').map(x => parseInt(x, 10))
                 if (indices.length === 1) {
                     faceIndices.push({vertex: indices[0]})
                 } else if (indices.length === 2) {
@@ -185,19 +185,19 @@ function parseObj(objText) {
             }
 
             // triangulate face
-            let triangles = [];
+            let triangles = []
             if (faceIndices.length === 3) {
-                triangles = [faceIndices];
+                triangles = [faceIndices]
             } else if (faceIndices.length === 4) {
-                triangles = [[faceIndices[0], faceIndices[1], faceIndices[2]], [faceIndices[0], faceIndices[2], faceIndices[3]],];
+                triangles = [[faceIndices[0], faceIndices[1], faceIndices[2]], [faceIndices[0], faceIndices[2], faceIndices[3]],]
             } else {
                 throw Error("Unsupported number of vertices in face: " + faceIndices.length)
             }
 
             // add indices
             for (let triangle of triangles) {
-                indices.push(...triangle.map(x => x.vertex - 1));
-                normal_indices.push(...triangle.map(x => x.normal - 1));
+                indices.push(...triangle.map(x => x.vertex - 1))
+                normal_indices.push(...triangle.map(x => x.normal - 1))
             }
         }
     }
@@ -209,9 +209,9 @@ function parseObj(objText) {
                 sorted_normals[indices[i] * 3 + j] = normals[normal_indices[i] * 3 + j]
             }
         }
-        normals = sorted_normals;
+        normals = sorted_normals
     } else { // generate normals if they are not present
-        normals = generateNormals(vertices, indices);
+        normals = generateNormals(vertices, indices)
     }
 
     return {
@@ -219,5 +219,5 @@ function parseObj(objText) {
         normals: new Float32Array(normals),
         indices: new Uint32Array(indices),
         texCoords: new Float32Array(texCoords)
-    };
+    }
 }

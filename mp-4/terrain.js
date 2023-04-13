@@ -208,18 +208,18 @@ function generateTerrain(resolution, slices) {
  */
 function getCameraVectors(camera) {
     let forward = glMatrix.vec3.fromValues(Math.cos(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.pitch));
-    let right = glMatrix.vec3.create();
-    let up = glMatrix.vec3.fromValues(0, 0, 1);
+    let right = glMatrix.vec3.create()
+    let up = glMatrix.vec3.fromValues(0, 0, 1)
 
     // calculate right vector
-    glMatrix.vec3.cross(right, forward, up);
+    glMatrix.vec3.cross(right, forward, up)
 
     //normalize all vectors
-    glMatrix.vec3.normalize(forward, forward);
-    glMatrix.vec3.normalize(right, right);
-    glMatrix.vec3.normalize(up, up);
+    glMatrix.vec3.normalize(forward, forward)
+    glMatrix.vec3.normalize(right, right)
+    glMatrix.vec3.normalize(up, up)
 
-    return {forward, right, up};
+    return {forward, right, up}
 }
 
 /**
@@ -230,21 +230,21 @@ function getCameraVectors(camera) {
  */
 function getNearestPoint(targetPoint, vertices) {
     if (vertices.length === 0) {
-        return null;
+        return null
     }
 
-    let minIndex = undefined;
-    let minDistSquared = Number.MAX_VALUE;
+    let minIndex = undefined
+    let minDistSquared = Number.MAX_VALUE
 
     for (let i = 0; i < vertices.length / 3; i++) {
-        let dx = targetPoint[0] - vertices[i * 3];
-        let dy = targetPoint[1] - vertices[i * 3 + 1];
-        let dz = targetPoint[2] - vertices[i * 3 + 2];
-        let distanceSquared = dx * dx + dy * dy + dz * dz;
+        let dx = targetPoint[0] - vertices[i * 3]
+        let dy = targetPoint[1] - vertices[i * 3 + 1]
+        let dz = targetPoint[2] - vertices[i * 3 + 2]
+        let distanceSquared = dx * dx + dy * dy + dz * dz
 
         if (distanceSquared < minDistSquared) {
-            minIndex = i * 3;
-            minDistSquared = distanceSquared;
+            minIndex = i * 3
+            minDistSquared = distanceSquared
         }
     }
 
@@ -267,13 +267,13 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
     let terrain = generateTerrain(resolution, slices)
 
     let terrainTextureSlot = 0
-    let terrainTexture = new Image();
+    let terrainTexture = new Image()
     terrainTexture.src = terrainTexturePath
     terrainTexture.onload = function () {
-        gl.activeTexture(gl.TEXTURE0 + terrainTextureSlot);
-        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, terrainTexture);
-        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.activeTexture(gl.TEXTURE0 + terrainTextureSlot)
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, terrainTexture)
+        gl.generateMipmap(gl.TEXTURE_2D)
     }
     terrainTexture.onerror = function () {
         console.log("Error loading terrain texture")
@@ -281,13 +281,13 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
     }
 
     let modelTextureSlot = 1
-    let modelTexture = new Image();
-    modelTexture.src = modelTexturePath;
+    let modelTexture = new Image()
+    modelTexture.src = modelTexturePath
     modelTexture.onload = function () {
-        gl.activeTexture(gl.TEXTURE0 + modelTextureSlot);
-        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, modelTexture);
-        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.activeTexture(gl.TEXTURE0 + modelTextureSlot)
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, modelTexture)
+        gl.generateMipmap(gl.TEXTURE_2D)
     }
     modelTexture.onerror = function () {
         console.log("Error loading model texture, attempting to use terrain texture")
@@ -296,7 +296,7 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
 
     shaderProgram.vertexPosition = gl.getAttribLocation(shaderProgram, "a_vertexPosition")
     shaderProgram.vertexNormal = gl.getAttribLocation(shaderProgram, "a_vertexNormal")
-    shaderProgram.vertexCoordinates = gl.getAttribLocation(shaderProgram, "a_vertexCoordinates");
+    shaderProgram.vertexCoordinates = gl.getAttribLocation(shaderProgram, "a_vertexCoordinates")
     shaderProgram.modelViewMatrix = gl.getUniformLocation(shaderProgram, "u_modelViewMatrix")
     shaderProgram.projectionMatrix = gl.getUniformLocation(shaderProgram, "u_projectionMatrix")
     shaderProgram.normalMatrix = gl.getUniformLocation(shaderProgram, "u_normalMatrix")
@@ -320,7 +320,7 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
         rotateSpeed: gridCellSize * (1 / 3),
         maxPitchUp: 1.5 * Math.PI - 0.01,
         maxPitchDown: .5 * Math.PI + 0.01,
-    };
+    }
 
     requestAnimationFrame(render)
 
@@ -329,54 +329,54 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
      * @param timestamp current time in milliseconds
      */
     function render(timestamp) {
-        updateFPS(timestamp);
+        updateFPS(timestamp)
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
         // process keysBeingPressed array and update camera position, rotation, etc.
-        let cameraVectors = getCameraVectors(camera);
+        let cameraVectors = getCameraVectors(camera)
         if (keysBeingPressed.w) {
-            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.forward, camera.moveSpeed);
+            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.forward, camera.moveSpeed)
         }
         if (keysBeingPressed.s) {
-            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.forward, -camera.moveSpeed);
+            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.forward, -camera.moveSpeed)
         }
         if (keysBeingPressed.d) {
-            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.right, camera.moveSpeed);
+            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.right, camera.moveSpeed)
         }
         if (keysBeingPressed.a) {
-            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.right, -camera.moveSpeed);
+            glMatrix.vec3.scaleAndAdd(camera.position, camera.position, cameraVectors.right, -camera.moveSpeed)
         }
         if (keysBeingPressed.arrowup) {
-            camera.pitch -= camera.rotateSpeed;
+            camera.pitch -= camera.rotateSpeed
             if (camera.pitch <= camera.maxPitchDown) {
                 camera.pitch = camera.maxPitchDown
             }
         }
         if (keysBeingPressed.arrowdown) {
-            camera.pitch += camera.rotateSpeed;
+            camera.pitch += camera.rotateSpeed
             if (camera.pitch >= camera.maxPitchUp) {
                 camera.pitch = camera.maxPitchUp
             }
         }
         if (keysBeingPressed.arrowright) {
-            camera.yaw -= camera.rotateSpeed;
+            camera.yaw -= camera.rotateSpeed
         }
         if (keysBeingPressed.arrowleft) {
-            camera.yaw += camera.rotateSpeed;
+            camera.yaw += camera.rotateSpeed
         }
         if (keysBeingPressed.vehicle) {
             // 15 frames to cross a grid cell
             camera.moveSpeed = gridCellSize * (1 / 15)
-            const nearestPoint = getNearestPoint(camera.position, terrain.vertices);
+            const nearestPoint = getNearestPoint(camera.position, terrain.vertices)
 
             // go to the target z coordinate at 1/5th the distance per frame
-            let target = nearestPoint.coordinates[2] + gridCellSize * 2;
+            let target = nearestPoint.coordinates[2] + gridCellSize * 2
             camera.position[2] -= (camera.position[2] - target) * (1 / 5)
 
             // snap to the nearest point if we're too far away
             if (Math.abs(camera.position[0]) > .99 || Math.abs(camera.position[1]) > .99) {
-                camera.position[0] = nearestPoint.coordinates[0];
-                camera.position[1] = nearestPoint.coordinates[1];
+                camera.position[0] = nearestPoint.coordinates[0]
+                camera.position[1] = nearestPoint.coordinates[1]
             }
         } else {
             // reset the camera speed
@@ -386,10 +386,10 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
 
         // set the camera
         glMatrix.mat4.perspective(projectionMatrix, 1, gl.canvas.clientWidth / gl.canvas.clientHeight, .001, 100)
-        let target = glMatrix.vec3.create();
-        cameraVectors = getCameraVectors(camera);
-        glMatrix.vec3.add(target, camera.position, cameraVectors.forward);
-        glMatrix.mat4.lookAt(modelViewMatrix, camera.position, target, cameraVectors.up);
+        let target = glMatrix.vec3.create()
+        cameraVectors = getCameraVectors(camera)
+        glMatrix.vec3.add(target, camera.position, cameraVectors.forward)
+        glMatrix.mat4.lookAt(modelViewMatrix, camera.position, target, cameraVectors.up)
         gl.uniform3fv(shaderProgram.cameraPosition, camera.position)
 
         /**
@@ -454,14 +454,14 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
         }
 
         // draw terrain
-        drawObject(shaderProgram, terrain, modelViewMatrix, projectionMatrix, terrainTextureSlot);
+        drawObject(shaderProgram, terrain, modelViewMatrix, projectionMatrix, terrainTextureSlot)
 
         //draw model
-        let modelViewMatrix2 = glMatrix.mat4.clone(modelViewMatrix);
+        let modelViewMatrix2 = glMatrix.mat4.clone(modelViewMatrix)
         let modelScale = 0.25
-        glMatrix.mat4.scale(modelViewMatrix2, modelViewMatrix2, [modelScale, modelScale, modelScale]);
-        glMatrix.mat4.translate(modelViewMatrix2, modelViewMatrix2, [0, 0, 1 + modelScale * 2 + terrain.vertices[(resolution + 1) * (resolution / 2) * 3 + 2]]);
-        drawObject(shaderProgram, model, modelViewMatrix2, projectionMatrix, modelTextureSlot);
+        glMatrix.mat4.scale(modelViewMatrix2, modelViewMatrix2, [modelScale, modelScale, modelScale])
+        glMatrix.mat4.translate(modelViewMatrix2, modelViewMatrix2, [0, 0, 1 + modelScale * 2 + terrain.vertices[(resolution + 1) * (resolution / 2) * 3 + 2]])
+        drawObject(shaderProgram, model, modelViewMatrix2, projectionMatrix, modelTextureSlot)
 
         // request next timestamp
         requestAnimationFrame(render)
