@@ -13,6 +13,7 @@ let keysBeingPressed = {
     arrowdown: false,
     arrowleft: false,
     arrowright: false,
+    vehicle: false,
     fog: true,
 };
 
@@ -22,6 +23,9 @@ document.addEventListener('keydown', (event) => {
     }
     if (event.key.toLowerCase() === 'f') {
         keysBeingPressed.fog = !keysBeingPressed.fog;
+    }
+    if (event.key.toLowerCase() === 'g') {
+        keysBeingPressed.vehicle = !keysBeingPressed.vehicle;
     }
     if (event.key.toLowerCase() === 'h') {
         let textbox = document.getElementById("description")
@@ -36,6 +40,33 @@ document.addEventListener('keyup', (event) => {
         keysBeingPressed[event.key.toLowerCase()] = false;
     }
 });
+
+let lastTime = undefined;
+let frames = 0;
+
+/**
+ * Updates the FPS counter
+ * From https://webglfundamentals.org/webgl/lessons/webgl-qna-recording-fps-in-webgl.html
+ * @param timestamp current time in milliseconds
+ */
+function updateFPS(timestamp) {
+    frames++;
+
+    // setup lastTime
+    if (lastTime === undefined) {
+        lastTime = timestamp;
+    }
+
+    // update fps every second
+    if (timestamp - lastTime >= 1000) {
+        let fpsCounter = document.getElementById("fps");
+        if (fpsCounter !== null) {
+            fpsCounter.textContent = `FPS: ${frames}`;
+        }
+        lastTime = timestamp;
+        frames = 0;
+    }
+}
 
 /**
  * Resizes the canvas to completely fill the screen

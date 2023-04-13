@@ -41,6 +41,16 @@
             background-color: rgba(255, 255, 255, 0.2);
             padding: 10px;
         }
+
+        #fps {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: white;
+            border: 1px solid white;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
@@ -58,10 +68,14 @@
         <span>
             <p>Use WASD keys to move camera.</p>
             <p>Use Arrow keys to rotate camera.</p>
-            <p>Press F to toggle the fog on and off.</p>
+            <p>Press F to toggle the fog.</p>
+            <p>Press G to toggle vehicular movement.</p>
             <p>Press H to hide this box.</p>
         </span>
     </div>
+
+    <div id="fps">FPS: calculating...</div>
+
 </div>
 </body>
 </html>

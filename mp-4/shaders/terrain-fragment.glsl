@@ -5,7 +5,7 @@ uniform sampler2D u_image;
 uniform bool u_fog;
 uniform vec3 u_ambientLightColor;
 uniform vec3 u_specularLightColor;
-uniform vec3 u_fogColor;
+uniform vec4 u_fogColor;
 uniform vec3 u_lightPosition;
 uniform float u_shininess;
 
@@ -27,6 +27,6 @@ void main(void) {
 
     if (u_fog) { // from https://webglfundamentals.org/webgl/lessons/webgl-fog.html
         float fogAmount = smoothstep(2.0, 3.0, length(v_vertex));
-        gl_FragColor = mix(gl_FragColor, vec4(u_fogColor, 1.0), fogAmount);
+        gl_FragColor = mix(gl_FragColor, u_fogColor, fogAmount);
     }
 }
