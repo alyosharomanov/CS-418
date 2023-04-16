@@ -57,24 +57,26 @@
 <div class="display">
     <canvas width="500" height="500"></canvas>
     <div id="description">
-        <div style="padding-bottom: 10px;">
+        <div style="padding-bottom: 10px; padding-right: 10px; display: flex; justify-content: space-between;">
             <button onclick="location.reload()"><b>Refresh Page</b></button>
+            <p id="flight">mode: flight</p>
+            <p id="fog">fog: on</p>
         </div>
         <div style="padding-bottom: 5px;">
-            <button onclick="window.location.href='.'">Load Default</button>
-            <button onclick="window.location.href='.#suzanne.obj'">Load Suzanne</button>
-            <button onclick="window.location.href='.#cow.obj'">Load Cow</button>
+            <button id="example" onclick="window.location.href='.'">Load Default</button>
+            <button id="suzanne" onclick="window.location.href='.#suzanne.obj'">Load Suzanne</button>
+            <button id="cow" onclick="window.location.href='.#cow.obj'">Load Cow</button>
         </div>
         <div>
-            <button onclick="window.location.href='.#skull.obj'">Load Skull</button>
-            <button onclick="window.location.href='.#car.obj'">Load Car</button>
+            <button id="skull" onclick="window.location.href='.#skull.obj'">Load Skull</button>
+            <button id="car" onclick="window.location.href='.#car.obj'">Load Car</button>
         </div>
         <span>
             <p>Use WASD keys to move camera.</p>
             <p>Use Arrow keys to rotate camera.</p>
             <p>Press F to toggle the fog.</p>
             <p>Press G to toggle vehicular movement.</p>
-            <p>Press H to hide this box.</p>
+            <p>Press H to hide this box and fps.</p>
         </span>
     </div>
 

@@ -201,60 +201,6 @@ function generateTerrain(resolution, slices) {
 }
 
 /**
- * calculates camera unit vectors
- * from https://www.tomdalling.com/blog/modern-opengl/04-cameras-vectors-and-input/
- * @param camera the current camera position
- * @return {{forward: vec3, right: vec3, up: vec3}}
- */
-function getCameraVectors(camera) {
-    let forward = glMatrix.vec3.fromValues(Math.cos(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.pitch))
-    let right = glMatrix.vec3.create()
-    let up = glMatrix.vec3.fromValues(0, 0, 1)
-
-    // calculate right vector
-    glMatrix.vec3.cross(right, forward, up)
-
-    //normalize all vectors
-    glMatrix.vec3.normalize(forward, forward)
-    glMatrix.vec3.normalize(right, right)
-    glMatrix.vec3.normalize(up, up)
-
-    return {forward, right, up}
-}
-
-/**
- * Find the nearest point to the target point in the vertices array
- * @param targetPoint the target point
- * @param vertices the vertices array
- * @returns {{coordinates: [number, number, number], distance: number}|null} the nearest point and its distance
- */
-function getNearestPoint(targetPoint, vertices) {
-    if (vertices.length === 0) {
-        return null
-    }
-
-    let minIndex = undefined
-    let minDistSquared = Number.MAX_VALUE
-
-    for (let i = 0; i < vertices.length / 3; i++) {
-        let dx = targetPoint[0] - vertices[i * 3]
-        let dy = targetPoint[1] - vertices[i * 3 + 1]
-        let dz = targetPoint[2] - vertices[i * 3 + 2]
-        let distanceSquared = dx * dx + dy * dy + dz * dz
-
-        if (distanceSquared < minDistSquared) {
-            minIndex = i * 3
-            minDistSquared = distanceSquared
-        }
-    }
-
-    return {
-        coordinates: [vertices[minIndex], vertices[minIndex + 1], vertices[minIndex + 2]],
-        distance: Math.sqrt(minDistSquared)
-    }
-}
-
-/**
  * Draw terrain
  * @param shaderProgram shader program for drawing terrain
  * @param resolution resolution of the terrain
@@ -322,6 +268,7 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
         rotateSpeed: gridCellSize * (1 / 3),
         maxPitchUp: 1.5 * Math.PI - 0.01,
         maxPitchDown: .5 * Math.PI + 0.01,
+        fov: 1
     }
 
     requestAnimationFrame(render)
@@ -367,9 +314,9 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
             camera.yaw += camera.rotateSpeed
         }
         if (keysBeingPressed.vehicle) {
-            // 15 frames to cross a grid cell
             camera.moveSpeed = gridCellSize * (1 / 15)
-            const nearestPoint = getNearestPoint(camera.position, terrain.vertices)
+            camera.fov = 1.5
+            let nearestPoint = getNearestPoint(camera.position, terrain.vertices)
 
             // go to the target z coordinate at 1/5th the distance per frame
             let target = nearestPoint.coordinates[2] + gridCellSize * 2
@@ -381,92 +328,18 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
                 camera.position[1] = nearestPoint.coordinates[1]
             }
         } else {
-            // reset the camera speed
             camera.moveSpeed = gridCellSize * (1 / 3)
+            camera.fov = 1
         }
         gl.uniform1i(shaderProgram.useFog, +keysBeingPressed.fog)
 
         // set the camera
-        glMatrix.mat4.perspective(projectionMatrix, 1, gl.canvas.clientWidth / gl.canvas.clientHeight, .001, 100)
+        glMatrix.mat4.perspective(projectionMatrix, camera.fov, gl.canvas.clientWidth / gl.canvas.clientHeight, .001, 100)
         let target = glMatrix.vec3.create()
         cameraVectors = getCameraVectors(camera)
         glMatrix.vec3.add(target, camera.position, cameraVectors.forward)
         glMatrix.mat4.lookAt(modelViewMatrix, camera.position, target, cameraVectors.up)
         gl.uniform3fv(shaderProgram.cameraPosition, camera.position)
-
-        /**
-         * Draw the object (terrain or model)
-         * @param shaderProgram the shader program to use
-         * @param object the object to draw
-         * @param modelViewMatrix the model view matrix
-         * @param projectionMatrix the projection matrix
-         * @param textureSlot the texture slot to use
-         */
-        function drawObject(shaderProgram, object, modelViewMatrix, projectionMatrix, textureSlot) {
-            // bind vertex buffer
-            if (object.vertices && object.vertices.length !== 0) {
-                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-                gl.bufferData(gl.ARRAY_BUFFER, object.vertices, gl.STATIC_DRAW)
-                gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0)
-                gl.enableVertexAttribArray(shaderProgram.vertexPosition)
-            } else {
-                console.log("No vertex data found for object, skipping")
-                return
-            }
-
-            // bind normal buffer
-            if (object.normals && object.normals.length !== 0) {
-                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-                gl.bufferData(gl.ARRAY_BUFFER, object.normals, gl.STATIC_DRAW)
-                gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0)
-                gl.enableVertexAttribArray(shaderProgram.vertexNormal)
-            } else {
-                gl.disableVertexAttribArray(shaderProgram.vertexNormal)
-            }
-
-            // bind color buffer
-            if (object.colors && object.colors.length !== 0) {
-                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-                gl.bufferData(gl.ARRAY_BUFFER, object.colors, gl.STATIC_DRAW)
-                gl.vertexAttribPointer(shaderProgram.vertexColor, 3, gl.FLOAT, false, 0, 0)
-                gl.enableVertexAttribArray(shaderProgram.vertexColor)
-            } else {
-                gl.disableVertexAttribArray(shaderProgram.vertexColor)
-            }
-
-            // bind texture coordinates
-            if (object.texCoords && object.texCoords.length !== 0) {
-                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-                gl.bufferData(gl.ARRAY_BUFFER, object.texCoords, gl.STATIC_DRAW)
-                gl.vertexAttribPointer(shaderProgram.vertexCoordinates, 2, gl.FLOAT, false, 0, 0)
-                gl.enableVertexAttribArray(shaderProgram.vertexCoordinates)
-
-                if (textureSlot !== undefined) {
-                    gl.uniform1i(shaderProgram.image, textureSlot)
-                }
-
-                gl.uniform1i(shaderProgram.useImage, +true)
-            } else {
-                gl.disableVertexAttribArray(shaderProgram.vertexCoordinates)
-                gl.uniform1i(shaderProgram.useImage, +false)
-            }
-
-            // bind index buffer
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, object.indices, gl.STATIC_DRAW)
-
-            // calculate normal matrix from model view matrix
-            let normalMatrix = glMatrix.mat3.create()
-            glMatrix.mat3.normalFromMat4(normalMatrix, modelViewMatrix)
-            glMatrix.mat3.invert(normalMatrix, normalMatrix)
-            glMatrix.mat3.transpose(normalMatrix, normalMatrix)
-
-            // set uniforms and draw geometry
-            gl.uniformMatrix4fv(shaderProgram.modelViewMatrix, false, modelViewMatrix)
-            gl.uniformMatrix3fv(shaderProgram.normalMatrix, false, normalMatrix)
-            gl.uniformMatrix4fv(shaderProgram.projectionMatrix, false, projectionMatrix)
-            gl.drawElements(gl.TRIANGLES, object.indices.length, gl.UNSIGNED_INT, 0)
-        }
 
         // draw terrain
         drawObject(shaderProgram, terrain, modelViewMatrix, projectionMatrix, terrainTextureSlot)
@@ -481,4 +354,130 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
         // request next timestamp
         requestAnimationFrame(render)
     }
+}
+
+
+/**
+ * calculates camera unit vectors
+ * from https://www.tomdalling.com/blog/modern-opengl/04-cameras-vectors-and-input/
+ * @param camera the current camera position
+ * @return {{forward: vec3, right: vec3, up: vec3}}
+ */
+function getCameraVectors(camera) {
+    let forward = glMatrix.vec3.fromValues(Math.cos(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.pitch))
+    let right = glMatrix.vec3.create()
+    let up = glMatrix.vec3.fromValues(0, 0, 1)
+
+    // calculate right vector
+    glMatrix.vec3.cross(right, forward, up)
+
+    //normalize all vectors
+    glMatrix.vec3.normalize(forward, forward)
+    glMatrix.vec3.normalize(right, right)
+    glMatrix.vec3.normalize(up, up)
+
+    return {forward, right, up}
+}
+
+/**
+ * Find the nearest point to the target point in the vertices array
+ * @param targetPoint the target point
+ * @param vertices the vertices array
+ * @returns {{coordinates: [number, number, number], distance: number}|null} the nearest point and its distance
+ */
+function getNearestPoint(targetPoint, vertices) {
+    if (vertices.length === 0) {
+        return null
+    }
+
+    let minIndex = undefined
+    let minDistSquared = Number.MAX_VALUE
+
+    for (let i = 0; i < vertices.length / 3; i++) {
+        let dx = targetPoint[0] - vertices[i * 3]
+        let dy = targetPoint[1] - vertices[i * 3 + 1]
+        let dz = targetPoint[2] - vertices[i * 3 + 2]
+        let distanceSquared = dx * dx + dy * dy + dz * dz
+
+        if (distanceSquared < minDistSquared) {
+            minIndex = i * 3
+            minDistSquared = distanceSquared
+        }
+    }
+
+    return {
+        coordinates: [vertices[minIndex], vertices[minIndex + 1], vertices[minIndex + 2]],
+        distance: Math.sqrt(minDistSquared)
+    }
+}
+
+/**
+ * Draw the object (terrain or model)
+ * @param shaderProgram the shader program to use
+ * @param object the object to draw
+ * @param modelViewMatrix the model view matrix
+ * @param projectionMatrix the projection matrix
+ * @param textureSlot the texture slot to use
+ */
+function drawObject(shaderProgram, object, modelViewMatrix, projectionMatrix, textureSlot) {
+    // bind vertex buffer
+    if (object.vertices && object.vertices.length !== 0) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+        gl.bufferData(gl.ARRAY_BUFFER, object.vertices, gl.STATIC_DRAW)
+        gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(shaderProgram.vertexPosition)
+    } else {
+        gl.disableVertexAttribArray(shaderProgram.vertexPosition)
+        console.log("No vertex data found for object, skipping")
+        return
+    }
+
+    // bind normal buffer
+    if (object.normals && object.normals.length !== 0) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+        gl.bufferData(gl.ARRAY_BUFFER, object.normals, gl.STATIC_DRAW)
+        gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(shaderProgram.vertexNormal)
+    } else {
+        gl.disableVertexAttribArray(shaderProgram.vertexNormal)
+    }
+
+    // bind color buffer
+    if (object.colors && object.colors.length !== 0) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+        gl.bufferData(gl.ARRAY_BUFFER, object.colors, gl.STATIC_DRAW)
+        gl.vertexAttribPointer(shaderProgram.vertexColor, 3, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(shaderProgram.vertexColor)
+    } else {
+        gl.disableVertexAttribArray(shaderProgram.vertexColor)
+    }
+
+    // bind texture coordinates
+    if (object.texCoords && object.texCoords.length !== 0 && textureSlot !== undefined) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+        gl.bufferData(gl.ARRAY_BUFFER, object.texCoords, gl.STATIC_DRAW)
+        gl.vertexAttribPointer(shaderProgram.vertexCoordinates, 2, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(shaderProgram.vertexCoordinates)
+        gl.uniform1i(shaderProgram.image, textureSlot)
+        gl.uniform1i(shaderProgram.useImage, +true)
+    } else {
+        gl.disableVertexAttribArray(shaderProgram.vertexCoordinates)
+        gl.uniform1i(shaderProgram.useImage, +false)
+    }
+
+    // bind index buffer
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, object.indices, gl.STATIC_DRAW)
+
+    // calculate normal matrix from model view matrix
+    let normalMatrix = glMatrix.mat3.create()
+    glMatrix.mat3.normalFromMat4(normalMatrix, modelViewMatrix)
+    glMatrix.mat3.invert(normalMatrix, normalMatrix)
+    glMatrix.mat3.transpose(normalMatrix, normalMatrix)
+
+    // set uniforms and draw geometry
+    gl.uniformMatrix4fv(shaderProgram.modelViewMatrix, false, modelViewMatrix)
+    gl.uniformMatrix3fv(shaderProgram.normalMatrix, false, normalMatrix)
+    gl.uniformMatrix4fv(shaderProgram.projectionMatrix, false, projectionMatrix)
+    gl.drawElements(gl.TRIANGLES, object.indices.length, gl.UNSIGNED_INT, 0)
 }

@@ -23,14 +23,26 @@ document.addEventListener('keydown', (event) => {
     }
     if (event.key.toLowerCase() === 'f') {
         keysBeingPressed.fog = !keysBeingPressed.fog
+        let fog = document.getElementById("fog")
+        if (fog) {
+            fog.textContent = `fog: ${keysBeingPressed.fog ? 'on' : 'off'}`
+        }
     }
     if (event.key.toLowerCase() === 'g') {
         keysBeingPressed.vehicle = !keysBeingPressed.vehicle
+        let flight = document.getElementById("flight")
+        if (flight) {
+            flight.textContent = `mode: ${keysBeingPressed.vehicle ? 'vehicle' : 'flight'}`
+        }
     }
     if (event.key.toLowerCase() === 'h') {
-        let textbox = document.getElementById("description")
-        if (textbox) {
-            textbox.style.display = 'none'
+        let description = document.getElementById("description")
+        if (description) {
+            description.style.display = 'none'
+        }
+        let fps = document.getElementById("fps")
+        if (fps) {
+            fps.style.display = 'none'
         }
     }
 })
@@ -110,6 +122,14 @@ async function setup() {
     if (object_path === '') {
         object_path = 'example.obj'
     }
+
+    // set the background color of the button to white
+    let button = document.getElementById(object_path.replace(/\.obj$/, ''))
+    if (button) {
+        button.style.backgroundColor = 'white'
+        button.style.color = 'black'
+    }
+
     let model_source = await fetch(object_path).then(res => res.text())
     let model = parseObj(model_source)
 
@@ -180,8 +200,8 @@ function parseObj(objText) {
         } else if (line[0] === 'f') { // face
             let face = []
             for (let i = 1; i < line.length; i++) {
-                const [index, texture, normal] = line[i].split('/').map(x => parseInt(x));
-                const attributes = {}
+                let [index, texture, normal] = line[i].split('/').map(x => parseInt(x))
+                let attributes = {}
                 if (index !== undefined) attributes.index = index
                 if (texture !== undefined) attributes.texture = texture
                 if (normal !== undefined) attributes.normal = normal
@@ -194,7 +214,7 @@ function parseObj(objText) {
             }
             let triangles = []
             for (let i = 1; i < face.length - 1; i++) {
-                triangles.push([face[0], face[i], face[i + 1]]);
+                triangles.push([face[0], face[i], face[i + 1]])
             }
 
             // add indices, colors and normals if they exist
