@@ -181,18 +181,21 @@ function parseObj(objText) {
             let face = []
             for (let i = 1; i < line.length; i++) {
                 const [index, texture, normal] = line[i].split('/').map(x => parseInt(x));
-                const attributes = {};
-                if (index !== undefined) attributes.index = index;
-                if (texture !== undefined) attributes.texture = texture;
-                if (normal !== undefined) attributes.normal = normal;
-                face.push(attributes);
+                const attributes = {}
+                if (index !== undefined) attributes.index = index
+                if (texture !== undefined) attributes.texture = texture
+                if (normal !== undefined) attributes.normal = normal
+                face.push(attributes)
             }
 
-            // triangulate face
-            if (face.length < 3 || face.length > 4) {
+            //triangulate the face
+            if (face.length < 3) {
                 throw Error("Unsupported number of vertices in face: " + face.length)
             }
-            let triangles = face.length === 3 ? [face] : [[face[0], face[1], face[2]], [face[0], face[2], face[3]]]
+            let triangles = []
+            for (let i = 1; i < face.length - 1; i++) {
+                triangles.push([face[0], face[i], face[i + 1]]);
+            }
 
             // add indices, colors and normals if they exist
             for (let triangle of triangles) {
@@ -204,7 +207,7 @@ function parseObj(objText) {
     }
 
     if (normals.length > 0 && normal_indices.length > 0) { // organize normals according to the indices
-        let sorted_normals = new Float32Array(normals.length).fill(0)
+        let sorted_normals = new Array(normals.length).fill(0)
         for (let i = 0; i < normal_indices.length; i++) {
             for (let j = 0; j < 3; j++) {
                 sorted_normals[indices[i] * 3 + j] = normals[normal_indices[i] * 3 + j]
@@ -222,10 +225,10 @@ function parseObj(objText) {
     }
 
     if (texCoords.length > 0 && texCoord_indices.length > 0) { // organize texCoords according to the indices
-        let sorted_texCoords = new Float32Array(texCoords.length).fill(0)
+        let sorted_texCoords = new Array(texCoords.length).fill(0)
         for (let i = 0; i < texCoord_indices.length; i++) {
-            for (let j = 0; j < 3; j++) {
-                sorted_texCoords[indices[i] * 3 + j] = texCoords[texCoord_indices[i] * 3 + j]
+            for (let j = 0; j < 2; j++) {
+                sorted_texCoords[indices[i] * 2 + j] = texCoords[texCoord_indices[i] * 2 + j]
             }
         }
         texCoords = sorted_texCoords

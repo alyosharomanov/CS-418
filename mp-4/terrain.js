@@ -384,7 +384,7 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
             // reset the camera speed
             camera.moveSpeed = gridCellSize * (1 / 3)
         }
-        gl.uniform1i(shaderProgram.useFog, + keysBeingPressed.fog)
+        gl.uniform1i(shaderProgram.useFog, +keysBeingPressed.fog)
 
         // set the camera
         glMatrix.mat4.perspective(projectionMatrix, 1, gl.canvas.clientWidth / gl.canvas.clientHeight, .001, 100)
@@ -445,10 +445,10 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
                     gl.uniform1i(shaderProgram.image, textureSlot)
                 }
 
-                gl.uniform1i(shaderProgram.useImage, + true)
+                gl.uniform1i(shaderProgram.useImage, +true)
             } else {
                 gl.disableVertexAttribArray(shaderProgram.vertexCoordinates)
-                gl.uniform1i(shaderProgram.useImage, + false)
+                gl.uniform1i(shaderProgram.useImage, +false)
             }
 
             // bind index buffer

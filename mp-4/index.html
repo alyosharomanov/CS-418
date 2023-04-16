@@ -58,12 +58,16 @@
     <canvas width="500" height="500"></canvas>
     <div id="description">
         <div style="padding-bottom: 10px;">
-            <button class="refresh-button" onclick="location.reload()">Refresh Page</button>
+            <button onclick="location.reload()"><b>Refresh Page</b></button>
+        </div>
+        <div style="padding-bottom: 5px;">
+            <button onclick="window.location.href='.'">Load Default</button>
+            <button onclick="window.location.href='.#suzanne.obj'">Load Suzanne</button>
+            <button onclick="window.location.href='.#cow.obj'">Load Cow</button>
         </div>
         <div>
-            <button class="refresh-button" onclick="window.location.href='.'">Load Default</button>
-            <button class="refresh-button" onclick="window.location.href='.#suzanne.obj'">Load Suzanne</button>
-            <button class="refresh-button" onclick="window.location.href='.#cow.obj'">Load Cow</button>
+            <button onclick="window.location.href='.#skull.obj'">Load Skull</button>
+            <button onclick="window.location.href='.#car.obj'">Load Car</button>
         </div>
         <span>
             <p>Use WASD keys to move camera.</p>
