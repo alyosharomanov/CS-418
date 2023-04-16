@@ -113,7 +113,7 @@ async function setup() {
     let model_source = await fetch(object_path).then(res => res.text())
     let model = parseObj(model_source)
 
-    drawTerrain(shaderProgram, 100, 100, 'terrain.jpg', model, 'fake.jpg')//object_path.replace(/\.obj$/, '.jpg'))
+    drawTerrain(shaderProgram, 100, 100, 'terrain.jpg', model, object_path.replace(/\.obj$/, '.jpg'))
 }
 
 /**
@@ -155,7 +155,7 @@ function compileAndLinkGLSL(vs_source, fs_source) {
  * Parses an obj file and returns an object with the parsed data
  * from: https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html
  * @param objText string with the obj file
- * @returns {{indices: [], vertices: [], normals: [], colors: [], texCoords: []}}
+ * @returns {{indices: Uint32Array, vertices: Float32Array, normals: Float32Array, texCoords: Float32Array, colors: Float32Array}}
  */
 function parseObj(objText) {
     let vertices = []
@@ -164,6 +164,7 @@ function parseObj(objText) {
     let colors = []
     let indices = []
     let texCoords = []
+    let texCoord_indices = []
 
     // parse obj file
     for (let line of objText.split('\n').map(line => line.trim().split(/\s+/))) {
@@ -179,16 +180,12 @@ function parseObj(objText) {
         } else if (line[0] === 'f') { // face
             let face = []
             for (let i = 1; i < line.length; i++) {
-                const parameters = line[i].split('/').map(x => parseInt(x))
-                if (parameters.length === 1) {
-                    face.push({index: parameters[0]})
-                } else if (parameters.length === 2) {
-                    face.push({index: parameters[0], normal: parameters[1]})
-                } else if (parameters.length === 3) {
-                    face.push({index: parameters[0], normal: parameters[2], texture: parameters[1]})
-                } else {
-                    throw Error("Unsupported number of parameters in face: " + parameters.length)
-                }
+                const [index, texture, normal] = line[i].split('/').map(x => parseInt(x));
+                const attributes = {};
+                if (index !== undefined) attributes.index = index;
+                if (texture !== undefined) attributes.texture = texture;
+                if (normal !== undefined) attributes.normal = normal;
+                face.push(attributes);
             }
 
             // triangulate face
@@ -200,6 +197,7 @@ function parseObj(objText) {
             // add indices, colors and normals if they exist
             for (let triangle of triangles) {
                 indices.push(...triangle.map(x => x?.index - 1) ?? [])
+                texCoord_indices.push(...triangle.map(x => x?.texture - 1) ?? [])
                 normal_indices.push(...triangle.map(x => x?.normal - 1) ?? [])
             }
         }
@@ -221,6 +219,16 @@ function parseObj(objText) {
         for (let i = 0; i < vertices.length / 3; i++) {
             colors.push(1, 0.373, 0.02)
         }
+    }
+
+    if (texCoords.length > 0 && texCoord_indices.length > 0) { // organize texCoords according to the indices
+        let sorted_texCoords = new Float32Array(texCoords.length).fill(0)
+        for (let i = 0; i < texCoord_indices.length; i++) {
+            for (let j = 0; j < 3; j++) {
+                sorted_texCoords[indices[i] * 3 + j] = texCoords[texCoord_indices[i] * 3 + j]
+            }
+        }
+        texCoords = sorted_texCoords
     }
 
     return {

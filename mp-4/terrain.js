@@ -404,7 +404,7 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
          */
         function drawObject(shaderProgram, object, modelViewMatrix, projectionMatrix, textureSlot) {
             // bind vertex buffer
-            if (object.vertices.length !== 0) {
+            if (object.vertices && object.vertices.length !== 0) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
                 gl.bufferData(gl.ARRAY_BUFFER, object.vertices, gl.STATIC_DRAW)
                 gl.vertexAttribPointer(shaderProgram.vertexPosition, 3, gl.FLOAT, false, 0, 0)
@@ -415,7 +415,7 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
             }
 
             // bind normal buffer
-            if (object.normals.length !== 0) {
+            if (object.normals && object.normals.length !== 0) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
                 gl.bufferData(gl.ARRAY_BUFFER, object.normals, gl.STATIC_DRAW)
                 gl.vertexAttribPointer(shaderProgram.vertexNormal, 3, gl.FLOAT, false, 0, 0)
@@ -435,7 +435,7 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
             }
 
             // bind texture coordinates
-            if (object.texCoords.length !== 0) {
+            if (object.texCoords && object.texCoords.length !== 0) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
                 gl.bufferData(gl.ARRAY_BUFFER, object.texCoords, gl.STATIC_DRAW)
                 gl.vertexAttribPointer(shaderProgram.vertexCoordinates, 2, gl.FLOAT, false, 0, 0)
