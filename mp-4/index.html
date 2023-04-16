@@ -63,13 +63,13 @@
             <p id="fog">fog: on</p>
         </div>
         <div style="padding-bottom: 5px;">
-            <button id="example" onclick="window.location.href='.'">Load Default</button>
-            <button id="suzanne" onclick="window.location.href='.#suzanne.obj'">Load Suzanne</button>
-            <button id="cow" onclick="window.location.href='.#cow.obj'">Load Cow</button>
+            <button id="example" onclick="location.href=`index.html`">Load Default</button>
+            <button id="suzanne" onclick="location.href=`${location.href.replace(location.hash,'')}#suzanne.obj`">Load Suzanne</button>
+            <button id="cow" onclick="location.href=`${location.href.replace(location.hash,'')}#cow.obj`">Load Cow</button>
         </div>
         <div>
-            <button id="skull" onclick="window.location.href='.#skull.obj'">Load Skull</button>
-            <button id="car" onclick="window.location.href='.#car.obj'">Load Car</button>
+            <button id="skull" onclick="location.href=`${location.href.replace(location.hash,'')}#skull.obj`">Load Skull</button>
+            <button id="car" onclick="location.href=`${location.href.replace(location.hash,'')}#car.obj`">Load Car</button>
         </div>
         <span>
             <p>Use WASD keys to move camera.</p>
