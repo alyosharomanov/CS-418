@@ -1,8 +1,8 @@
 window.addEventListener('load', setup)
 window.addEventListener('resize', fillScreen)
 window.addEventListener('popstate', function () {
-    location.reload();
-});
+    location.reload()
+})
 
 let keysBeingPressed = {
     w: false,
@@ -15,34 +15,34 @@ let keysBeingPressed = {
     arrowright: false,
     vehicle: false,
     fog: true,
-};
+}
 
 document.addEventListener('keydown', (event) => {
     if (keysBeingPressed.hasOwnProperty(event.key.toLowerCase())) {
-        keysBeingPressed[event.key.toLowerCase()] = true;
+        keysBeingPressed[event.key.toLowerCase()] = true
     }
     if (event.key.toLowerCase() === 'f') {
-        keysBeingPressed.fog = !keysBeingPressed.fog;
+        keysBeingPressed.fog = !keysBeingPressed.fog
     }
     if (event.key.toLowerCase() === 'g') {
-        keysBeingPressed.vehicle = !keysBeingPressed.vehicle;
+        keysBeingPressed.vehicle = !keysBeingPressed.vehicle
     }
     if (event.key.toLowerCase() === 'h') {
         let textbox = document.getElementById("description")
         if (textbox) {
-            textbox.style.display = 'none';
+            textbox.style.display = 'none'
         }
     }
-});
+})
 
 document.addEventListener('keyup', (event) => {
     if (keysBeingPressed.hasOwnProperty(event.key.toLowerCase())) {
-        keysBeingPressed[event.key.toLowerCase()] = false;
+        keysBeingPressed[event.key.toLowerCase()] = false
     }
-});
+})
 
-let lastTime = undefined;
-let frames = 0;
+let lastTime
+let frames = 0
 
 /**
  * Updates the FPS counter
@@ -50,21 +50,22 @@ let frames = 0;
  * @param timestamp current time in milliseconds
  */
 function updateFPS(timestamp) {
-    frames++;
-
-    // setup lastTime
-    if (lastTime === undefined) {
-        lastTime = timestamp;
+    // if this is the first time the function is called, set the lastTime to the current time
+    if (!lastTime) {
+        lastTime = timestamp
     }
 
-    // update fps every second
+    // increment the frame counter
+    frames++
+
+    // update every second
     if (timestamp - lastTime >= 1000) {
-        let fpsCounter = document.getElementById("fps");
-        if (fpsCounter !== null) {
-            fpsCounter.textContent = `FPS: ${frames}`;
+        const fpsCounter = document.getElementById("fps")
+        if (fpsCounter) {
+            fpsCounter.textContent = `FPS: ${frames}`
         }
-        lastTime = timestamp;
-        frames = 0;
+        lastTime = timestamp
+        frames = 0
     }
 }
 
@@ -172,31 +173,29 @@ function parseObj(objText) {
         } else if (line[0] === 'vt') { // texture coordinate
             texCoords.push(parseFloat(line[1]), parseFloat(line[2]))
         } else if (line[0] === 'f') { // face
-            let faceIndices = []
+            let face = []
             for (let i = 1; i < line.length; i++) {
-                const indices = line[i].split('/').map(x => parseInt(x, 10))
-                if (indices.length === 1) {
-                    faceIndices.push({vertex: indices[0]})
-                } else if (indices.length === 2) {
-                    faceIndices.push({vertex: indices[0], normal: indices[1]})
-                } else if (indices.length === 3) {
-                    faceIndices.push({vertex: indices[0], texture: indices[1], normal: indices[2]})
+                const parameters = line[i].split('/').map(x => parseInt(x))
+                if (parameters.length === 1) {
+                    face.push({index: parameters[0]})
+                } else if (parameters.length === 2) {
+                    face.push({index: parameters[0], normal: parameters[1]})
+                } else if (parameters.length === 3) {
+                    face.push({index: parameters[0], texture: parameters[1], normal: parameters[2]})
+                } else {
+                    throw Error("Unsupported number of parameters in face: " + parameters.length)
                 }
             }
 
             // triangulate face
-            let triangles = []
-            if (faceIndices.length === 3) {
-                triangles = [faceIndices]
-            } else if (faceIndices.length === 4) {
-                triangles = [[faceIndices[0], faceIndices[1], faceIndices[2]], [faceIndices[0], faceIndices[2], faceIndices[3]],]
-            } else {
-                throw Error("Unsupported number of vertices in face: " + faceIndices.length)
+            if (face.length < 3 || face.length > 4) {
+                throw Error("Unsupported number of vertices in face: " + face.length)
             }
+            const triangles = face.length === 3 ? [face] : [[face[0], face[1], face[2]], [face[0], face[2], face[3]],]
 
             // add indices
             for (let triangle of triangles) {
-                indices.push(...triangle.map(x => x.vertex - 1))
+                indices.push(...triangle.map(x => x.index - 1))
                 normal_indices.push(...triangle.map(x => x.normal - 1))
             }
         }

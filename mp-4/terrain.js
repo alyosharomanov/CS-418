@@ -190,7 +190,7 @@ function generateTerrain(resolution, slices) {
     verticalSeparation(vertices, resolution)
 
     // create normals
-    let normals = generateNormals(vertices, indices);
+    let normals = generateNormals(vertices, indices)
 
     return {
         vertices: new Float32Array(vertices),
@@ -207,7 +207,7 @@ function generateTerrain(resolution, slices) {
  * @return {{forward: vec3, right: vec3, up: vec3}}
  */
 function getCameraVectors(camera) {
-    let forward = glMatrix.vec3.fromValues(Math.cos(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.pitch));
+    let forward = glMatrix.vec3.fromValues(Math.cos(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.yaw) * Math.cos(camera.pitch), Math.sin(camera.pitch))
     let right = glMatrix.vec3.create()
     let up = glMatrix.vec3.fromValues(0, 0, 1)
 
