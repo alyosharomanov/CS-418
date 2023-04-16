@@ -60,7 +60,7 @@ function updateFPS(timestamp) {
 
     // update every second
     if (timestamp - lastTime >= 1000) {
-        const fpsCounter = document.getElementById("fps")
+        let fpsCounter = document.getElementById("fps")
         if (fpsCounter) {
             fpsCounter.textContent = `FPS: ${frames}`
         }
@@ -113,7 +113,7 @@ async function setup() {
     let model_source = await fetch(object_path).then(res => res.text())
     let model = parseObj(model_source)
 
-    drawTerrain(shaderProgram, 100, 100, 'terrain.jpg', model, object_path.replace(/\.obj$/, '.jpg'))
+    drawTerrain(shaderProgram, 100, 100, 'terrain.jpg', model, 'fake.jpg')//object_path.replace(/\.obj$/, '.jpg'))
 }
 
 /**
@@ -155,19 +155,23 @@ function compileAndLinkGLSL(vs_source, fs_source) {
  * Parses an obj file and returns an object with the parsed data
  * from: https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html
  * @param objText string with the obj file
- * @return {{indices: Uint32Array, vertices: Float32Array, normals: Float32Array, texCoords: Float32Array}}
+ * @returns {{indices: [], vertices: [], normals: [], colors: [], texCoords: []}}
  */
 function parseObj(objText) {
     let vertices = []
-    let texCoords = []
     let normals = []
-    let indices = []
     let normal_indices = []
+    let colors = []
+    let indices = []
+    let texCoords = []
 
     // parse obj file
-    for (const line of objText.split('\n').map(line => line.trim().split(/\s+/))) {
+    for (let line of objText.split('\n').map(line => line.trim().split(/\s+/))) {
         if (line[0] === 'v') { // vertex
             vertices.push(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]))
+            if (line.length === 7) { // vertex colors
+                colors.push(parseFloat(line[4]), parseFloat(line[5]), parseFloat(line[6]))
+            }
         } else if (line[0] === 'vn') { // vertex normal
             normals.push(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]))
         } else if (line[0] === 'vt') { // texture coordinate
@@ -181,7 +185,7 @@ function parseObj(objText) {
                 } else if (parameters.length === 2) {
                     face.push({index: parameters[0], normal: parameters[1]})
                 } else if (parameters.length === 3) {
-                    face.push({index: parameters[0], texture: parameters[1], normal: parameters[2]})
+                    face.push({index: parameters[0], normal: parameters[2], texture: parameters[1]})
                 } else {
                     throw Error("Unsupported number of parameters in face: " + parameters.length)
                 }
@@ -191,17 +195,17 @@ function parseObj(objText) {
             if (face.length < 3 || face.length > 4) {
                 throw Error("Unsupported number of vertices in face: " + face.length)
             }
-            const triangles = face.length === 3 ? [face] : [[face[0], face[1], face[2]], [face[0], face[2], face[3]],]
+            let triangles = face.length === 3 ? [face] : [[face[0], face[1], face[2]], [face[0], face[2], face[3]]]
 
-            // add indices
+            // add indices, colors and normals if they exist
             for (let triangle of triangles) {
-                indices.push(...triangle.map(x => x.index - 1))
-                normal_indices.push(...triangle.map(x => x.normal - 1))
+                indices.push(...triangle.map(x => x?.index - 1) ?? [])
+                normal_indices.push(...triangle.map(x => x?.normal - 1) ?? [])
             }
         }
     }
 
-    if (normals.length > 0) { // organize normals according to the indices
+    if (normals.length > 0 && normal_indices.length > 0) { // organize normals according to the indices
         let sorted_normals = new Float32Array(normals.length).fill(0)
         for (let i = 0; i < normal_indices.length; i++) {
             for (let j = 0; j < 3; j++) {
@@ -213,9 +217,16 @@ function parseObj(objText) {
         normals = generateNormals(vertices, indices)
     }
 
+    if (colors.length === 0) { // generate colors if they are not present
+        for (let i = 0; i < vertices.length / 3; i++) {
+            colors.push(1, 0.373, 0.02)
+        }
+    }
+
     return {
         vertices: new Float32Array(vertices),
         normals: new Float32Array(normals),
+        colors: new Float32Array(colors),
         indices: new Uint32Array(indices),
         texCoords: new Float32Array(texCoords)
     }

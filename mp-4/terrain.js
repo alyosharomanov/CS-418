@@ -296,13 +296,15 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
 
     shaderProgram.vertexPosition = gl.getAttribLocation(shaderProgram, "a_vertexPosition")
     shaderProgram.vertexNormal = gl.getAttribLocation(shaderProgram, "a_vertexNormal")
+    shaderProgram.vertexColor = gl.getAttribLocation(shaderProgram, "a_vertexColor")
     shaderProgram.vertexCoordinates = gl.getAttribLocation(shaderProgram, "a_vertexCoordinates")
     shaderProgram.modelViewMatrix = gl.getUniformLocation(shaderProgram, "u_modelViewMatrix")
     shaderProgram.projectionMatrix = gl.getUniformLocation(shaderProgram, "u_projectionMatrix")
     shaderProgram.normalMatrix = gl.getUniformLocation(shaderProgram, "u_normalMatrix")
     shaderProgram.cameraPosition = gl.getUniformLocation(shaderProgram, "u_cameraPosition")
     shaderProgram.image = gl.getUniformLocation(shaderProgram, "u_image")
-    shaderProgram.fog = gl.getUniformLocation(shaderProgram, "u_fog")
+    shaderProgram.useFog = gl.getUniformLocation(shaderProgram, "u_useFog")
+    shaderProgram.useImage = gl.getUniformLocation(shaderProgram, "u_useImage")
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_ambientLightColor'), [1, 1, 1])
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'u_specularLightColor'), [1, 1, 1])
     gl.uniform4fv(gl.getUniformLocation(shaderProgram, 'u_fogColor'), gl.getParameter(gl.COLOR_CLEAR_VALUE))
@@ -382,7 +384,7 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
             // reset the camera speed
             camera.moveSpeed = gridCellSize * (1 / 3)
         }
-        gl.uniform1f(shaderProgram.fog, keysBeingPressed.fog)
+        gl.uniform1i(shaderProgram.useFog, + keysBeingPressed.fog)
 
         // set the camera
         glMatrix.mat4.perspective(projectionMatrix, 1, gl.canvas.clientWidth / gl.canvas.clientHeight, .001, 100)
@@ -422,6 +424,16 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
                 gl.disableVertexAttribArray(shaderProgram.vertexNormal)
             }
 
+            // bind color buffer
+            if (object.colors && object.colors.length !== 0) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+                gl.bufferData(gl.ARRAY_BUFFER, object.colors, gl.STATIC_DRAW)
+                gl.vertexAttribPointer(shaderProgram.vertexColor, 3, gl.FLOAT, false, 0, 0)
+                gl.enableVertexAttribArray(shaderProgram.vertexColor)
+            } else {
+                gl.disableVertexAttribArray(shaderProgram.vertexColor)
+            }
+
             // bind texture coordinates
             if (object.texCoords.length !== 0) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
@@ -432,8 +444,11 @@ function drawTerrain(shaderProgram, resolution, slices, terrainTexturePath, mode
                 if (textureSlot !== undefined) {
                     gl.uniform1i(shaderProgram.image, textureSlot)
                 }
+
+                gl.uniform1i(shaderProgram.useImage, + true)
             } else {
                 gl.disableVertexAttribArray(shaderProgram.vertexCoordinates)
+                gl.uniform1i(shaderProgram.useImage, + false)
             }
 
             // bind index buffer

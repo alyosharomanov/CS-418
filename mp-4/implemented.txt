@@ -1,6 +1,7 @@
 Rotating camera (20 points)
 Vehicular movement (15 points)
 OBJ loading: Basic (15 points)
+OBJ loading: Vertex colors (10 points)
 OBJ loading: Custom file (5 points)
 OBJ loading: More attributes (15 points)
 Fog (15 points)
