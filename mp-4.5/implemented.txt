@@ -5,6 +5,7 @@ mpray_expose1.txt
 mpray_expose2.txt
 mpray_eye.txt
 mpray_inside.txt
+mpray_many.txt
 mpray_neglight.txt
 mpray_overlap.txt
 mpray_shadow-basic.txt

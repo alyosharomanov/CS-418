@@ -126,17 +126,17 @@ def ray_trace(ray_direction):
         if add_light:
             color += closest_sphere.color * sun.color * np.dot(normal, light_direction)
 
-    # Add color from bulb if the hit point is not blocked by any sphere
+    # Add color from bulbs
     for bulb in bulbs:
         light_direction = normalize(bulb.position - hit_point)
         distance = np.linalg.norm(bulb.position - hit_point)
         fall_off = 1 / (distance * distance)
 
-        # Check if the bulb is blocked by any sphere
+        # Add color from bulb if the hit point is not blocked by any sphere
         add_light = True
         for sphere in spheres:
             intersection = intersect(hit_point + offset * normal, light_direction, sphere)
-            if intersection and (np.linalg.norm(hit_point + intersection * light_direction - hit_point) < distance):
+            if intersection and np.linalg.norm(hit_point + intersection * light_direction - hit_point) < distance:
                 add_light = False
                 break
         if add_light:
@@ -187,7 +187,7 @@ for y in range(height):
 # convert image to sRGB
 rgb = image[..., :3]
 if exposure:
-    rgb = 1 - np.exp(-rgb * exposure)
+    rgb = 1 - np.power(np.e, -rgb * exposure)
 srgb = np.where(rgb <= 0.0031308, 12.92 * rgb, 1.055 * np.power(rgb, 1 / 2.4) - 0.055)
 image[..., :3] = np.clip(srgb, 0, 1)
 
