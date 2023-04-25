@@ -20,12 +20,11 @@ for file in reference/*.txt; do
     if [ "$diffs" = "0" ]; then
       echo "${GREEN}success\c"
       success=$((success+1))
+      echo "$file.txt" >> implemented.txt
     else
       echo "${YELLOW}images do not match: differences: $diffs\c"
       partial=$((partial+1))
     fi
-
-    echo "$file.txt" >> implemented.txt
 
     composite out/${file}.png reference/${file}.png -compose difference out/${file}-rawdiff.png
     convert out/${file}-rawdiff.png -level 0%,8% out/${file}-diff.png
