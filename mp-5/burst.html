@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>CS 418 Terrain project</title>
+    <script type="text/javascript" src="utils/gl-matrix.js"></script>
+    <script type="text/javascript" src="mp5.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            border: none;
+            padding: 0;
+            display: flex;
+        }
+
+        .display {
+            flex-grow: 1;
+            height: 100vh;
+            line-height: 0;
+        }
+
+        #fps {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: white;
+            border: 1px solid white;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="display">
+    <canvas width="500" height="500"></canvas>
+    <div id="fps">FPS: calculating...</div>
+</div>
+</body>
+</html>
