@@ -30,9 +30,9 @@ function resetSpheres() {
         ]
 
         const velocity = [
-            Math.random() * 5,
-            Math.random() * 5,
-            Math.random() * 5
+            Math.random(),
+            Math.random(),
+            Math.random()
         ]
 
         const radius = Math.random() * 0.06 + 0.03
@@ -81,14 +81,14 @@ function updateSpherePositions(elapsedTime) {
                         sphere.velocity[i] = 0
                     }
                 } else {
-                    sphere.velocity[i] *= -1
+                    sphere.velocity[i] *= -.9
                 }
 
                 // update position to be inside the box
                 if (sphere.position[i] > 0) {
-                    sphere.position[i] = (boundingBoxSize / 2 - sphere.radius)
+                    sphere.position[i] = (boundingBoxSize / 2 - sphere.radius) - 0.01
                 } else {
-                    sphere.position[i] = -(boundingBoxSize / 2 - sphere.radius)
+                    sphere.position[i] = -(boundingBoxSize / 2 - sphere.radius) - 0.01
                 }
             }
         }
@@ -112,7 +112,7 @@ function spheresShouldReset() {
 const numSpheres = 50
 const boundingBoxSize = 1.0
 const gravity = -9.81
-const drag = 0.995
+const drag = 0.99
 
 function burst(shaderProgram) {
     resetSpheres()
