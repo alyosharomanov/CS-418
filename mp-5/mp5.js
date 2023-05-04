@@ -1,7 +1,7 @@
 window.addEventListener('load', setup)
 window.addEventListener('resize', fillScreen)
 
-let lastTime
+let lastTime = 0
 let frames = 0
 
 /**
@@ -10,11 +10,6 @@ let frames = 0
  * @param timestamp current time in milliseconds
  */
 function updateFPS(timestamp) {
-    // if this is the first time the function is called, set the lastTime to the current time
-    if (!lastTime) {
-        lastTime = timestamp
-    }
-
     // increment the frame counter
     frames++
 
@@ -63,6 +58,7 @@ async function setup() {
     let fs_source = await fetch('shaders/burst-fragment.glsl').then(res => res.text())
     let shaderProgram = compileAndLinkGLSL(vs_source, fs_source)
     gl.useProgram(shaderProgram)
+    burst(shaderProgram)
 }
 
 /**
