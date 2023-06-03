@@ -6,6 +6,9 @@ layout: home
 title: "CS 418: Interactive Computer Graphics"
 ---
 
+## [MP 1: Rasterizer and Compositor]({{ site.url }}{{ site.baseurl }}/mp-1)
+In this programming assignment you will implement the key parts of the fixed functionality of a 2020s-era GPU.
+
 ## [MP 2: Dancing Logo]({{ site.url }}{{ site.baseurl }}/mp-2)
 You will submit a webpage that has:
 - One canvas
@@ -24,6 +27,9 @@ You will submit a webpage that has:
 - One canvas
 - Keyboard response to move the camera
 - One or more texture-mapped objects
+
+## [MP 4.5: Raytracer]({{ site.url }}{{ site.baseurl }}/mp-4.5)
+This programming assignment created 3D imagery using ray tracing. In most other respects, its logistics are similar to the rasterizer assignment: you code in any language you want and your program reads a text file and produces an image file.
 
 ## [MP 5: Particle Effects]({{ site.url }}{{ site.baseurl }}/mp-5)
 You will submit one or more webpages. Each has:
